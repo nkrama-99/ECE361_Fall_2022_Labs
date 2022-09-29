@@ -1,3 +1,4 @@
+// we used the beej textbook for reference
 #include <stdio.h>
 #include <stdlib.h>
 #include <stdbool.h>
