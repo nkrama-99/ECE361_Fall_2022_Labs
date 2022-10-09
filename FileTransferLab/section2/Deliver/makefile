@@ -1,2 +1,2 @@
 all:
-	gcc -lm -o deliver deliver.c
+	gcc -lm -o deliver deliver.c -lm

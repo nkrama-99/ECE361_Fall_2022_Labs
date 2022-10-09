@@ -1,2 +1,2 @@
 all:
-	gcc -lm -o server server.c
+	gcc -lm -o server server.c -lm
