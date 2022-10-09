@@ -46,6 +46,7 @@ void write_to_file(char *received)
         counter++;
         index++;
     };
+    *(total_frag + counter) = '\0';
     index++;
     
     // printf("Processing packet_no\n");
@@ -56,6 +57,7 @@ void write_to_file(char *received)
         counter++;
         index++;
     };
+    *(packet_no + counter) = '\0';
     index++;
 
     // printf("Processing size\n");
@@ -66,6 +68,7 @@ void write_to_file(char *received)
         counter++;
         index++;
     };
+    *(size + counter) = '\0';
     index++;
 
     // printf("Processing file_name\n");
@@ -76,6 +79,7 @@ void write_to_file(char *received)
         counter++;
         index++;
     };
+    *(file_name + counter) = '\0';
     index++;
 
     content_ptr = received + index;
@@ -87,14 +91,14 @@ void write_to_file(char *received)
         content[i] = *(content_ptr + i);
     }
 
-    printf("Parsing the message received:\n");
-    printf(" - total_frag : %s \n", total_frag);
-    printf(" - packet_no : %s \n", packet_no);
-    printf(" - size : %s \n", size);
-    printf(" - file_name : %s \n", file_name);
-    // printf(" - content : %s \n", content);
+    // printf("Parsing the message received:\n");
+    // printf(" - total_frag : %s \n", total_frag);
+    // printf(" - packet_no : %s \n", packet_no);
+    // printf(" - size : %s \n", size);
+    // printf(" - file_name : %s \n", file_name);
+    // // printf(" - content : %s \n", content);
 
-    printf("Writing content to file | total_frag = %s | packet_no = %s | size = %s | file_name = %s \n", total_frag , packet_no, size, file_name);
+    printf("Writing to file | total_frag = %s | packet_no = %s | size = %s | file_name = %s \n", total_frag , packet_no, size, file_name);
 
     // testing last packet for a specific case
     // if (atoi(packet_no) == 2168) {
@@ -122,12 +126,12 @@ void write_to_file(char *received)
 
     fclose(fptr);
 
-    // // free up all memory allocated
-    // free(total_frag);
-    // free(packet_no);
-    // free(size);
-    // free(file_name);
-    // free(content);
+    // free up all memory allocated
+    free(total_frag);
+    free(packet_no);
+    free(size);
+    free(file_name);
+    free(content);
 }
 
 int main(int argc, char **argv)
