@@ -10,7 +10,7 @@
 #define SERVER_UDP_PORT 5000 /* well-known port */
 #define MAXLEN 4096          /* maximum data length */
 
-void write_to_file(char *received);
+bool write_to_file(char *received);
 
 void delay(int number_of_seconds) 
 { 
@@ -27,7 +27,7 @@ void delay(int number_of_seconds)
 
 } 
 
-void write_to_file(char *received)
+bool write_to_file(char *received)
 {    
     char *total_frag = (char*)malloc(MAXLEN * sizeof(char));
     char *packet_no = (char*)malloc(MAXLEN * sizeof(char));
@@ -39,6 +39,8 @@ void write_to_file(char *received)
     // printf("Processing total_frag\n");
     int index = 0;
     int counter = 0;
+
+    bool ftp = true;
 
     while (*(received + index) != ':') {
         // printf("Testing with: %c\n", *(received + index));
@@ -106,6 +108,11 @@ void write_to_file(char *received)
     //     printf(content);
     //     printf("\n");
     // }
+
+    if (atoi(packet_no) == atoi(total_frag)) {
+        printf("FTP Complete!\n");
+        ftp = false;
+    }
     
     FILE *fptr;
 
@@ -132,6 +139,8 @@ void write_to_file(char *received)
     free(size);
     free(file_name);
     free(content);
+
+    return ftp;
 }
 
 int main(int argc, char **argv)
@@ -140,13 +149,11 @@ int main(int argc, char **argv)
     int sd, client_len, port, n;
     char buf[MAXLEN];
     struct sockaddr_in server, client;
-    char expected_message[] = "ftp";
-    char *reply;
-    int reply_len;
+    char expected_message[] = "ftp ";
 
-    reply = malloc(3 * sizeof(char));
-    reply = "yes";
-    reply_len = 3;
+    char yes[] = "yes";
+    char no[] = "no";  
+    char* reply;
 
     switch (argc)
     {
@@ -191,6 +198,8 @@ int main(int argc, char **argv)
         exit(1);
     }
 
+    bool ftp = false;
+
     //-----------------------------------------------------------------------
     //wait for an incoming message
     while (1)
@@ -209,11 +218,27 @@ int main(int argc, char **argv)
         // printf("PRINTING BUF RECEIVED BY UDP FUNCTION\n");
         // printf(buf);
         // printf("\n End of buf \n");
-        write_to_file(buf);
+        
+        if (ftp == true) {
+            ftp = write_to_file(buf);
+            reply = yes;
+        } else {
+            if (strcmp(buf, expected_message)) {
+                printf("FTP!\n");
+                ftp = true;
+                reply = yes;
+            } else {
+                reply = no;
+            }
+        }
 
         //define reply and reply_len
-        if (sendto(sd, reply, reply_len, 0,
-                   (struct sockaddr *)&client, client_len) != reply_len)
+        printf("Response: ");
+        printf(reply);
+        printf("\n");
+
+        if (sendto(sd, reply, strlen(reply), 0,
+                   (struct sockaddr *)&client, client_len) != strlen(reply))
         {
             fprintf(stderr, "Can’t send datagram\n");
             exit(1);
