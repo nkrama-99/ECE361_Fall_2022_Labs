@@ -165,6 +165,8 @@ int main(int argc, char **argv)
         exit(1);
     }
 
+    printf("Chosen port: %d \n", port);
+
     //the following is borrowed from the Berkley API
     //establishes socket and binds to it
 
