@@ -115,7 +115,7 @@ int main(int argc, char **argv)
         int header = sprintf(packBuff, "%d:%d:%d:%s:", totalFrag, fragNum, size, fileName);
         memcpy(packBuff + header, fileBuff, size);
 
-        if (sendto(sockfd, fileBuff, header+size, 0, servinfo->ai_addr, servinfo->ai_addrlen) < 0)
+        if (sendto(sockfd, packBuff, header+size, 0, servinfo->ai_addr, servinfo->ai_addrlen) < 0)
         {
             printf("error: sendto");
             exit(1);
