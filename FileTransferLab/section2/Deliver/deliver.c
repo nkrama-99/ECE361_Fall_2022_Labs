@@ -90,53 +90,51 @@ int main(int argc, char **argv)
     }
     else
     {
-        printf("Other, invalid response\n");
+        printf("Invalid response\n");
     }
 
     FILE *file;
-    char file_buf[1000];
-    char pack_buf[4096];
+    char fileBuff[1000];
+    char packBuff[4096];
 
     file = fopen(fileName, "r");
-    int file_size = ftell(file);
 
     if (file == NULL)
     {
         printf("error: empty file\n");
-    }
-    else
-    {
-        printf("file is not empty\n");
+        exit(1);
     }
 
     fseek(file, 0, SEEK_END);
-    int total_frag = (ftell(file) / 1000) + 1;
+    int totalFrag = (ftell(file)/1000)+1;
     rewind(file);
 
-    for (int frag_num = 1; frag_num <= total_frag; frag_num++)
+    for (int fragNum = 1; fragNum <= totalFrag; fragNum++)
     {
-        int size = fread(file_buf, sizeof(char), 1000, file);
-        printf("%s\n", file_buf);
-        int header_offset = sprintf(pack_buf, "%d:%d:%d:%s:", total_frag, frag_num, size, fileName);
-        memcpy(pack_buf + header_offset, file_buf, size);
+        int size = fread(fileBuff, sizeof(char), 1000, file);
+        int header = sprintf(packBuff, "%d:%d:%d:%s:", totalFrag, fragNum, size, fileName);
+        memcpy(packBuff + header, fileBuff, size);
 
-        if (sendto(sockfd, pack_buf, header_offset + size, 0, servinfo->ai_addr, servinfo->ai_addrlen) < 0)
+        if (sendto(sockfd, fileBuff, header+size, 0, servinfo->ai_addr, servinfo->ai_addrlen) < 0)
         {
             printf("error: sendto");
+            exit(1);
         }
 
         if (recvfrom(sockfd, buff, 256, 0, (struct sockaddr *)servinfo, &serversize) < 0)
         {
             printf("error: recvfrom");
+            exit(1);
         }
 
         if (strcmp(buff, "yes") == 0)
         {
             printf("ACK\n");
+        } 
+        else {
+            printf("error: ack");
+            exit(1);
         }
     }
-
-    printf("There are %d packets\n", total_frag);
-
     return 0;
 }
