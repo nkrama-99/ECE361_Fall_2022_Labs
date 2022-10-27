@@ -113,7 +113,7 @@ int main(int argc, char **argv)
 
     struct timeval timeout;
 
-    rtt = rtt * 1000;
+    // rtt = rtt * 1000;
     
     timeout.tv_sec = 0;
     timeout.tv_usec = (int)(rtt * 1000000);
