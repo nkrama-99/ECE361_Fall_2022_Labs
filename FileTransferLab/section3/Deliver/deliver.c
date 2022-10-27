@@ -9,6 +9,7 @@
 #include <arpa/inet.h>
 #include <netdb.h>
 #include <time.h>
+#include <stdbool.h>
 
 int main(int argc, char **argv)
 {
@@ -106,8 +107,18 @@ int main(int argc, char **argv)
     }
 
     fseek(file, 0, SEEK_END);
-    int totalFrag = (ftell(file)/1000)+1;
+    int totalFrag = (ftell(file) / 1000) + 1;
     rewind(file);
+
+    struct timeval timeout;
+
+    timeout.tv_sec = 0;
+    timeout.tv_usec = 50000;
+
+    if (setsockopt(sockfd, SOL_SOCKET, SO_RCVTIMEO, (char *)&timeout, sizeof(timeout)) < 0)
+    {
+        printf("setsockopt error\n");
+    }
 
     for (int fragNum = 1; fragNum <= totalFrag; fragNum++)
     {
@@ -115,26 +126,32 @@ int main(int argc, char **argv)
         int header = sprintf(packBuff, "%d:%d:%d:%s:", totalFrag, fragNum, size, fileName);
         memcpy(packBuff + header, fileBuff, size);
 
-        if (sendto(sockfd, packBuff, header+size, 0, servinfo->ai_addr, servinfo->ai_addrlen) < 0)
-        {
-            printf("error: sendto");
-            exit(1);
-        }
+        // TIMEOUT LOGIC START
 
-        if (recvfrom(sockfd, buff, 256, 0, (struct sockaddr *)servinfo, &serversize) < 0)
-        {
-            printf("error: recvfrom");
-            exit(1);
-        }
+        bool isRetransmit = true;
 
-        if (strcmp(buff, "yes") == 0)
+        while (isRetransmit)
         {
-            printf("ACK\n");
-        } 
-        else {
-            printf("error: ack");
-            exit(1);
+            if (sendto(sockfd, packBuff, header + size, 0, servinfo->ai_addr, servinfo->ai_addrlen) < 0)
+            {
+                printf("error: sendto\n");
+                exit(1);
+            }
+
+            int rec = recvfrom(sockfd, buff, 256, 0, (struct sockaddr *)servinfo, &serversize);
+
+            if (rec > 0)
+            {
+                isRetransmit = false;
+                if (strcmp(buff, "yes") == 0)
+                {
+                    printf("ACK\n");
+                }
+            } else {
+                printf("RETRANSMIT\n");
+            }
         }
     }
+
     return 0;
 }
