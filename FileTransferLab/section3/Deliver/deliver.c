@@ -113,8 +113,10 @@ int main(int argc, char **argv)
 
     struct timeval timeout;
 
+    rtt = rtt * 1000;
+    
     timeout.tv_sec = 0;
-    timeout.tv_usec = (int) rtt * 1000000 * 1000;
+    timeout.tv_usec = (int)(rtt * 1000000);
 
     if (setsockopt(sockfd, SOL_SOCKET, SO_RCVTIMEO, (char *)&timeout, sizeof(timeout)) < 0)
     {
@@ -124,7 +126,8 @@ int main(int argc, char **argv)
     double alpha = 0.125;
     double beta = 0.125;
 
-    printf("Timeout: %d\n", timeout.tv_usec);
+    printf("rtt: %f\n", rtt);
+    printf("timeout.tv_usec: %f\n", timeout.tv_usec);
 
     for (int fragNum = 1; fragNum <= totalFrag; fragNum++)
     {
@@ -136,6 +139,7 @@ int main(int argc, char **argv)
 
         while (isRetransmit)
         {
+            printf("\n");
             clock_t start;
             clock_t end;
 
@@ -149,17 +153,19 @@ int main(int argc, char **argv)
             int rec = recvfrom(sockfd, buff, 256, 0, (struct sockaddr *)servinfo, &serversize);
             end = clock();
 
-            double sample_rtt = (double)(end - start) / CLOCKS_PER_SEC;
-            dev_rtt = ((1-beta) * dev_rtt + (beta) * abs(rtt - sample_rtt)) * 1000000;
-            rtt = ((1-alpha) * rtt + alpha * sample_rtt) * 1000000;
+            double sample_rtt = (double)((end - start) / CLOCKS_PER_SEC);
+            printf("test: %f \n", abs(rtt - sample_rtt));
+            dev_rtt = (1-beta) * dev_rtt + (beta) * abs(rtt - sample_rtt);
+            rtt = (1-alpha) * rtt + alpha * sample_rtt;
 
-            timeout.tv_usec = (int)(rtt + 4 * dev_rtt);
+            timeout.tv_usec = (int)((rtt + 4 * dev_rtt)*100000);
 
             printf("sample_rtt: %f \n", sample_rtt);
             printf("dev_rtt: %f \n", dev_rtt);
-            printf("rtt: %f \n", rtt);
+            printf("rtt: %f\n", rtt);
+            printf("timeout.tv_usec: %f\n", timeout.tv_usec);
 
-            printf("Timeout: %d\n", timeout.tv_usec);
+            // printf("Timeout: %d\n", timeout.tv_usec);
 
             if (setsockopt(sockfd, SOL_SOCKET, SO_RCVTIMEO, (char *)&timeout, sizeof(timeout)) < 0)
             {
@@ -176,6 +182,7 @@ int main(int argc, char **argv)
             } else {
                 printf("RETRANSMIT\n");
             }
+            printf(">>>>>>>>>>>>>>>\n");
         }
     }
 
