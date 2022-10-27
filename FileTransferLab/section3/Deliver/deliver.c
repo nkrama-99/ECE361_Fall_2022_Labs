@@ -153,9 +153,14 @@ int main(int argc, char **argv)
             int rec = recvfrom(sockfd, buff, 256, 0, (struct sockaddr *)servinfo, &serversize);
             end = clock();
 
-            double sample_rtt = (double)((end - start) / CLOCKS_PER_SEC);
-            printf("test: %f \n", abs(rtt - sample_rtt));
-            dev_rtt = (1-beta) * dev_rtt + (beta) * abs(rtt - sample_rtt);
+            printf("init rtt: %f\n", rtt);
+
+            double sample_rtt = (double)(end - start) / CLOCKS_PER_SEC;
+            printf("test1: %f \n", abs(rtt - sample_rtt));
+            printf("test2: %f \n", beta*fabs(rtt - sample_rtt));
+            
+            dev_rtt = (1-beta) * dev_rtt + beta * fabs(rtt - sample_rtt);
+
             rtt = (1-alpha) * rtt + alpha * sample_rtt;
 
             timeout.tv_usec = (int)((rtt + 4 * dev_rtt)*100000);
