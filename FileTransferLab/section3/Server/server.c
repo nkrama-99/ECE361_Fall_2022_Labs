@@ -11,8 +11,6 @@
 #define SERVER_UDP_PORT 5000 /* well-known port */
 #define MAXLEN 4096          /* maximum data length */
 
-#define RAND_MAX 2147483647
-
 bool write_to_file(char *received)
 {
     char *total_frag = (char*)malloc(MAXLEN * sizeof(char));
@@ -194,7 +192,6 @@ int main(int argc, char **argv)
     while (1)
     {
         // by default, packet drop is false
-        packetDrop = false;
 
         client_len = sizeof(client);
         //receive message from client into buf
@@ -211,15 +208,14 @@ int main(int argc, char **argv)
         // printf("\n End of buf \n");
         
         if (ftp == true) {
-            if (rand() > RAND_MAX*0.7) {
-                // if conditions met, packet drop is true
-                printf("PACKET DROP :(\n");
-                packetDrop = true;
-                // packet drop is a failure, so get ready for next resend
-                ftp = false;
-            } else {
+            packetDrop = (rand() % (100+1-0)) > 50;
+            if (packetDrop == false) {
                 ftp = write_to_file(buf);
                 reply = yes;
+            } else {
+                // if conditions met, packet drop is true
+                printf("PACKET DROP :(\n");
+                // packet drop is a failure, so get ready for next resend
             }
         } else {
             if (strcmp(buf, expected_message)) {
@@ -231,12 +227,11 @@ int main(int argc, char **argv)
             }
         }
 
-        //define reply and reply_len
-        printf("Response: ");
-        printf(reply);
-        printf("\n");
-
         if (packetDrop == false) {
+            printf("Response: ");
+            printf(reply);
+            printf("\n");
+
             if (sendto(sd, reply, strlen(reply), 0,
                     (struct sockaddr *)&client, client_len) != strlen(reply))
             {
