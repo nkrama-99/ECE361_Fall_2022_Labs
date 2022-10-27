@@ -6,15 +6,29 @@
 #include <string.h>
 #include <stdbool.h>
 #include <math.h>
-#include <time.h>
 
 #define SERVER_UDP_PORT 5000 /* well-known port */
 #define MAXLEN 4096          /* maximum data length */
 
-#define RAND_MAX 2147483647
+bool write_to_file(char *received);
+
+void delay(int number_of_seconds) 
+{ 
+    // Converting time into milli_seconds 
+    int milli_seconds = 1000 * number_of_seconds; 
+  
+    // Storing start time 
+    clock_t start_time = clock(); 
+  
+    // looping till required time is not achieved 
+    while (clock() < start_time + milli_seconds) {
+        // printf("waiting\n");
+    };
+
+} 
 
 bool write_to_file(char *received)
-{
+{    
     char *total_frag = (char*)malloc(MAXLEN * sizeof(char));
     char *packet_no = (char*)malloc(MAXLEN * sizeof(char));
     char *size = (char*)malloc(MAXLEN * sizeof(char));
@@ -132,7 +146,6 @@ bool write_to_file(char *received)
 int main(int argc, char **argv)
 {
     //variables borrowed from Berkely API 2.4
-    srand(time(NULL));
     int sd, client_len, port, n;
     char buf[MAXLEN];
     struct sockaddr_in server, client;
@@ -188,14 +201,11 @@ int main(int argc, char **argv)
     }
 
     bool ftp = false;
-    bool packetDrop = false;
+
     //-----------------------------------------------------------------------
     //wait for an incoming message
     while (1)
     {
-        // by default, packet drop is false
-        packetDrop = false;
-
         client_len = sizeof(client);
         //receive message from client into buf
         //returns number of bytes received
@@ -206,21 +216,14 @@ int main(int argc, char **argv)
             exit(1);
         }
 
+        // delay(500);
         // printf("PRINTING BUF RECEIVED BY UDP FUNCTION\n");
         // printf(buf);
         // printf("\n End of buf \n");
         
         if (ftp == true) {
-            if (rand() > RAND_MAX*0.7) {
-                // if conditions met, packet drop is true
-                printf("PACKET DROP :(\n");
-                packetDrop = true;
-                // packet drop is a failure, so get ready for next resend
-                ftp = false;
-            } else {
-                ftp = write_to_file(buf);
-                reply = yes;
-            }
+            ftp = write_to_file(buf);
+            reply = yes;
         } else {
             if (strcmp(buf, expected_message)) {
                 printf("FTP!\n");
@@ -236,13 +239,11 @@ int main(int argc, char **argv)
         printf(reply);
         printf("\n");
 
-        if (packetDrop == false) {
-            if (sendto(sd, reply, strlen(reply), 0,
-                    (struct sockaddr *)&client, client_len) != strlen(reply))
-            {
-                fprintf(stderr, "Can’t send datagram\n");
-                exit(1);
-            }
+        if (sendto(sd, reply, strlen(reply), 0,
+                   (struct sockaddr *)&client, client_len) != strlen(reply))
+        {
+            fprintf(stderr, "Can’t send datagram\n");
+            exit(1);
         }
 
         strcpy(buf, "");
