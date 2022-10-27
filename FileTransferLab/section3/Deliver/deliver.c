@@ -114,7 +114,7 @@ int main(int argc, char **argv)
     struct timeval timeout;
 
     timeout.tv_sec = 0;
-    timeout.tv_usec = (int) rtt * 1000000;
+    timeout.tv_usec = (int) rtt * 1000000 * 1000;
 
     if (setsockopt(sockfd, SOL_SOCKET, SO_RCVTIMEO, (char *)&timeout, sizeof(timeout)) < 0)
     {
@@ -123,6 +123,8 @@ int main(int argc, char **argv)
 
     double alpha = 0.125;
     double beta = 0.125;
+
+    printf("Timeout: %d\n", timeout.tv_usec);
 
     for (int fragNum = 1; fragNum <= totalFrag; fragNum++)
     {
@@ -134,6 +136,9 @@ int main(int argc, char **argv)
 
         while (isRetransmit)
         {
+            clock_t start;
+            clock_t end;
+
             start = clock();
             if (sendto(sockfd, packBuff, header + size, 0, servinfo->ai_addr, servinfo->ai_addrlen) < 0)
             {
@@ -148,9 +153,18 @@ int main(int argc, char **argv)
             dev_rtt = ((1-beta) * dev_rtt + (beta) * abs(rtt - sample_rtt)) * 1000000;
             rtt = ((1-alpha) * rtt + alpha * sample_rtt) * 1000000;
 
-            timeout.tv_usec = rtt + 4 * dev_rtt;
+            timeout.tv_usec = (int)(rtt + 4 * dev_rtt);
+
+            printf("sample_rtt: %f \n", sample_rtt);
+            printf("dev_rtt: %f \n", dev_rtt);
+            printf("rtt: %f \n", rtt);
 
             printf("Timeout: %d\n", timeout.tv_usec);
+
+            if (setsockopt(sockfd, SOL_SOCKET, SO_RCVTIMEO, (char *)&timeout, sizeof(timeout)) < 0)
+            {
+                printf("setsockopt error\n");
+            }
 
             if (rec > 0)
             {
