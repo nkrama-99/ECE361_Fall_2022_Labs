@@ -155,10 +155,7 @@ int main(int argc, char **argv)
 
             printf("init rtt: %f\n", rtt);
 
-            double sample_rtt = (double)(end - start) / CLOCKS_PER_SEC;
-            printf("test1: %f \n", abs(rtt - sample_rtt));
-            printf("test2: %f \n", beta*fabs(rtt - sample_rtt));
-            
+            double sample_rtt = (double)(end - start) / CLOCKS_PER_SEC;            
             dev_rtt = (1-beta) * dev_rtt + beta * fabs(rtt - sample_rtt);
 
             rtt = (1-alpha) * rtt + alpha * sample_rtt;
@@ -187,7 +184,6 @@ int main(int argc, char **argv)
             } else {
                 printf("RETRANSMIT\n");
             }
-            printf(">>>>>>>>>>>>>>>\n");
         }
     }
 
