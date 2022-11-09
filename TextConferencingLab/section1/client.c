@@ -11,7 +11,6 @@ int main(int argc, char **argv)
     while (isClientOn == true)
     {
         scanf("%s", &command);
-        printf("%s\n", command);
 
         if (strcmp(command, "/login") == 0)
         {
@@ -22,9 +21,30 @@ int main(int argc, char **argv)
             printf("you are logged out\n");
             isClientOn = false;
         }
+        else if (strcmp(command, "/joinsession") == 0)
+        {
+            printf("you have joined the session\n");
+        }
+        else if (strcmp(command, "/leavesession") == 0)
+        {
+            printf("you have left the session\n");
+        }
+        else if (strcmp(command, "/createsession") == 0)
+        {
+            printf("you have created a session\n");
+        }
+        else if (strcmp(command, "/list") == 0)
+        {
+            printf("here is a list of all connected clients and available sessions:\n");
+        }
+        else if (strcmp(command, "/quit") == 0)
+        {
+            printf("terminating program\n");
+            isClientOn = false
+        }
         else
         {
-            printf("unknown command\n");
+            printf("seinding message...\n");
         }
     }
 }
