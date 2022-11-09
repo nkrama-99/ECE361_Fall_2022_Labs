@@ -2,9 +2,76 @@
 #include <stdio.h>
 #include <stdbool.h>
 #include <string.h>
+#include <unistd.h>
+#include <errno.h>
+#include <string.h>
+#include <sys/types.h>
+#include <sys/socket.h>
+#include <netinet/in.h>
+#include <arpa/inet.h>
+#include <netdb.h>
+
+#define MAXBUFLEN 100
 
 int main(int argc, char **argv)
 {
+    // test begin
+    char *ip = "127.0.0.1";
+    int port = 3000;
+
+    int sockfd;
+    struct sockaddr_in servaddr;
+    socklen_t addr_len;
+    int numbytes;
+    char buf[MAXBUFLEN];
+
+    // socket create
+    sockfd = socket(AF_INET, SOCK_STREAM, 0);
+    if (sockfd == -1)
+    {
+        printf("socket creation failed...\n");
+        exit(0);
+    }
+    else
+        printf("Socket successfully created..\n");
+
+    bzero(&servaddr, sizeof(servaddr));
+
+    servaddr.sin_family = AF_INET;
+    servaddr.sin_addr.s_addr = inet_addr(ip);
+    servaddr.sin_port = htons(port);
+
+    addr_len = sizeof servaddr;
+
+    // connect the client socket to server socket
+    if (connect(sockfd, (struct sockaddr *)&servaddr, sizeof(servaddr)) != 0)
+    {
+        printf("connection with the server failed...\n");
+        exit(1);
+    }
+    else
+        printf("connected to the server..\n");
+
+    if ((numbytes = recvfrom(sockfd, buf, MAXBUFLEN - 1, 0,
+                             (struct sockaddr *)&servaddr, &addr_len)) == -1)
+    {
+        perror("recvfrom");
+        exit(1);
+    }
+
+    printf("Received message from server: ");
+    printf(buf);
+
+    if (send(sockfd, "Hi Rama! Nice to meet you.\n", MAXBUFLEN, 0) == -1)
+    {
+        perror("send");
+    }
+
+    printf("Reply sent\n");
+
+    exit(0);
+    // test end
+
     bool isClientOn = true;
     char command[50];
 

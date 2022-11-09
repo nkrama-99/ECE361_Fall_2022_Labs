@@ -13,15 +13,17 @@
 
 #define BACKLOG 10  // how many pending connections queue will hold
 #define PORT "3490" // the port users will be connecting to
+#define MAXBUFLEN 100
 
 // get sockaddr, IPv4 or IPv6:
 void *get_in_addr(struct sockaddr *sa)
 {
-	if (sa->sa_family == AF_INET) {
-		return &(((struct sockaddr_in*)sa)->sin_addr);
-	}
+    if (sa->sa_family == AF_INET)
+    {
+        return &(((struct sockaddr_in *)sa)->sin_addr);
+    }
 
-	return &(((struct sockaddr_in6*)sa)->sin6_addr);
+    return &(((struct sockaddr_in6 *)sa)->sin6_addr);
 }
 
 int main(int argc, char **argv)
@@ -95,10 +97,11 @@ int main(int argc, char **argv)
         exit(1);
     }
 
-    
-
     while (1)
     {
+        int numbytes;
+        char buf[MAXBUFLEN];
+
         printf("server: waiting for connections...\n");
 
         sin_size = sizeof their_addr;
@@ -115,12 +118,23 @@ int main(int argc, char **argv)
 
         printf("server: got connection from %s\n", s);
 
-        if (send(new_fd, "Hello, world!", 13, 0) == -1)
+        if (send(new_fd, "Hello, world! Rama was here.\n", MAXBUFLEN, 0) == -1)
         {
             perror("send");
         }
 
-        close(new_fd); // parent doesn't need this
+        if ((numbytes = recvfrom(new_fd, buf, MAXBUFLEN - 1, 0,
+                                 (struct sockaddr *)&their_addr, &sin_size)) == -1)
+        {
+            perror("recvfrom");
+            exit(1);
+        }
+
+        printf("Received message from client: ");
+        printf(buf);
+        printf("TERMINATE connection");
+
+        close(new_fd);
     }
 
     exit(0);
