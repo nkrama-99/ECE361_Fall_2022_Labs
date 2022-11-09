@@ -19,7 +19,6 @@ int main(int argc, char **argv)
         else if (strcmp(command, "/logout") == 0)
         {
             printf("you are logged out\n");
-            isClientOn = false;
         }
         else if (strcmp(command, "/joinsession") == 0)
         {
@@ -40,7 +39,7 @@ int main(int argc, char **argv)
         else if (strcmp(command, "/quit") == 0)
         {
             printf("terminating program\n");
-            isClientOn = false
+            isClientOn = false;
         }
         else
         {
