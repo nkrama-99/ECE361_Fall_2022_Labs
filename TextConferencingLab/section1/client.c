@@ -13,11 +13,11 @@ int main(int argc, char **argv)
         scanf("%s", &command);
         printf("%s\n", command);
 
-        if (strcmp(command, "/login"))
+        if (strcmp(command, "/login") == 0)
         {
             printf("you are logged in\n");
         }
-        else if (strcmp(command, "/logout"))
+        else if (strcmp(command, "/logout") == 0)
         {
             printf("you are logged out\n");
             isClientOn = false;
