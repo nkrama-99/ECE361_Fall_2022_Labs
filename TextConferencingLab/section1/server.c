@@ -11,8 +11,18 @@
 #include <sys/wait.h>
 #include <signal.h>
 
-#define BACKLOG 10	 // how many pending connections queue will hold
-#define PORT "3490"  // the port users will be connecting to
+#define BACKLOG 10  // how many pending connections queue will hold
+#define PORT "3490" // the port users will be connecting to
+
+// get sockaddr, IPv4 or IPv6:
+void *get_in_addr(struct sockaddr *sa)
+{
+	if (sa->sa_family == AF_INET) {
+		return &(((struct sockaddr_in*)sa)->sin_addr);
+	}
+
+	return &(((struct sockaddr_in6*)sa)->sin6_addr);
+}
 
 int main(int argc, char **argv)
 {
@@ -29,6 +39,9 @@ int main(int argc, char **argv)
     int rv;
     int yes = 1;
     struct addrinfo hints, *servinfo, *p;
+    socklen_t sin_size;
+    struct sockaddr_storage their_addr; // connector's address information
+    char s[INET6_ADDRSTRLEN];
 
     memset(&hints, 0, sizeof hints);
     hints.ai_family = AF_UNSPEC;
@@ -82,7 +95,33 @@ int main(int argc, char **argv)
         exit(1);
     }
 
-    printf("server: waiting for connections...\n");
+    
+
+    while (1)
+    {
+        printf("server: waiting for connections...\n");
+
+        sin_size = sizeof their_addr;
+        new_fd = accept(sockfd, (struct sockaddr *)&their_addr, &sin_size);
+        if (new_fd == -1)
+        {
+            perror("accept");
+            continue;
+        }
+
+        inet_ntop(their_addr.ss_family,
+                  get_in_addr((struct sockaddr *)&their_addr),
+                  s, sizeof s);
+
+        printf("server: got connection from %s\n", s);
+
+        if (send(new_fd, "Hello, world!", 13, 0) == -1)
+        {
+            perror("send");
+        }
+
+        close(new_fd); // parent doesn't need this
+    }
 
     exit(0);
 }
