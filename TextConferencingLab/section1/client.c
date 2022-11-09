@@ -1,8 +1,30 @@
 #include <stdlib.h>
 #include <stdio.h>
+#include <stdbool.h>
+#include <string.h>
 
 int main(int argc, char **argv)
 {
-    printf("Hello World!\n");
-    exit(0);
+    bool isClientOn = true;
+    char command[50];
+
+    while (isClientOn == true)
+    {
+        scanf("%s", &command);
+        printf("%s\n", command);
+
+        if (strcmp(command, "/login"))
+        {
+            printf("you are logged in\n");
+        }
+        else if (strcmp(command, "/logout"))
+        {
+            printf("you are logged out\n");
+            isClientOn = false;
+        }
+        else
+        {
+            printf("unknown command\n");
+        }
+    }
 }
