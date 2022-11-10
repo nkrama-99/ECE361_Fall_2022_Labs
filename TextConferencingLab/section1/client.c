@@ -6,44 +6,63 @@
 int main(int argc, char **argv)
 {
     bool isClientOn = true;
-    char command[50];
+    char *pch;
+    int toklen;
+    char buf[100];
+    // whether user is in a session
+    bool insession = false;
+    // supported commands
 
-    while (isClientOn == true)
+    while(1)
     {
-        scanf("%s", &command);
+        char *pch;
+        int toklen;
 
-        if (strcmp(command, "/login") == 0)
+        fgets(buf, 100 - 1, stdin);
+        buf[strcspn(buf, "\n")] = 0;
+        pch = buf;
+        while (*pch == ' ')
+            pch++;
+        if (*pch == 0)
         {
-            printf("you are logged in\n");
+            continue;
         }
-        else if (strcmp(command, "/logout") == 0)
+        pch = strtok(buf, " ");
+        toklen = strlen(pch);
+        if (strcmp(pch, "/login") == 0)
         {
-            printf("you are logged out\n");
+            printf("you have logged in\n");
         }
-        else if (strcmp(command, "/joinsession") == 0)
+        else if (strcmp(pch, "/logout") == 0)
+        {
+            printf("you have logged out\n");
+        }
+        else if (strcmp(pch, "/joinsession") == 0)
         {
             printf("you have joined the session\n");
         }
-        else if (strcmp(command, "/leavesession") == 0)
+        else if (strcmp(pch, "/leavesession") == 0)
         {
             printf("you have left the session\n");
         }
-        else if (strcmp(command, "/createsession") == 0)
+        else if (strcmp(pch, "/createsession") == 0)
         {
             printf("you have created a session\n");
         }
-        else if (strcmp(command, "/list") == 0)
+        else if (strcmp(pch, "/list") == 0)
         {
-            printf("here is a list of all connected clients and available sessions:\n");
+            printf("here is a list of active clients and sessions:\n");
         }
-        else if (strcmp(command, "/quit") == 0)
+        else if (strcmp(pch, "/quit") == 0)
         {
-            printf("terminating program\n");
-            isClientOn = false;
+            printf("terminating session\n");
+            break;
         }
         else
         {
-            printf("seinding message...\n");
+            buf[toklen] = ' ';
         }
     }
+    fprintf(stdout, "You have quit successfully.\n");
+    return 0;
 }
