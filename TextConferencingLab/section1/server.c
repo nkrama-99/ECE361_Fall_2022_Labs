@@ -1,140 +1,182 @@
 #include <stdio.h>
+#include <string.h> //strlen
 #include <stdlib.h>
-#include <unistd.h>
 #include <errno.h>
-#include <string.h>
+#include <unistd.h>    //close
+#include <arpa/inet.h> //close
 #include <sys/types.h>
 #include <sys/socket.h>
 #include <netinet/in.h>
-#include <netdb.h>
-#include <arpa/inet.h>
-#include <sys/wait.h>
-#include <signal.h>
+#include <sys/time.h> //FD_SET, FD_ISSET, FD_ZERO macros
 
-#define BACKLOG 10  // how many pending connections queue will hold
-#define PORT "3490" // the port users will be connecting to
-#define MAXBUFLEN 100
+#define PORT 3000
+#define MAX_CLIENTS 30
 
-// get sockaddr, IPv4 or IPv6:
-void *get_in_addr(struct sockaddr *sa)
+struct Client
 {
-    if (sa->sa_family == AF_INET)
-    {
-        return &(((struct sockaddr_in *)sa)->sin_addr);
-    }
+    char *name;
+    int sd;
+    struct sockaddr_storage addr;
+    socklen_t addr_len;
+};
 
-    return &(((struct sockaddr_in6 *)sa)->sin6_addr);
-}
-
-int main(int argc, char **argv)
+struct Session
 {
-    if (argc <= 1)
+    char *name;
+    struct Client clients[];
+};
+
+int main(int argc, char *argv[])
+{
+    int opt = 1;
+    int master_socket, addrlen, new_socket, client_socket[MAX_CLIENTS], activity, valread;
+    struct sockaddr_in address;
+
+    char buffer[1025]; // data buffer of 1K
+
+    // socket descriptor set
+    fd_set readfds;
+
+    // client sockets
+    for (int i = 0; i < MAX_CLIENTS; i++)
     {
-        printf("usage: ./server {port_number}\n");
-        exit(1);
+        client_socket[i] = 0;
     }
 
-    int server_port_number = atoi(argv[1]);
-    printf("Initiating Text Conferencing Server on %d\n", server_port_number);
-
-    int sockfd, new_fd; // listen on sock_fd, new connection on new_fd
-    int rv;
-    int yes = 1;
-    struct addrinfo hints, *servinfo, *p;
-    socklen_t sin_size;
-    struct sockaddr_storage their_addr; // connector's address information
-    char s[INET6_ADDRSTRLEN];
-
-    memset(&hints, 0, sizeof hints);
-    hints.ai_family = AF_UNSPEC;
-    hints.ai_socktype = SOCK_STREAM;
-    hints.ai_flags = AI_PASSIVE; // use my IP
-
-    if ((rv = getaddrinfo(NULL, argv[1], &hints, &servinfo)) != 0)
+    // master socket
+    if ((master_socket = socket(AF_INET, SOCK_STREAM, 0)) == 0)
     {
-        fprintf(stderr, "getaddrinfo: %s\n", gai_strerror(rv));
-        return 1;
+        perror("socket failed");
+        exit(EXIT_FAILURE);
     }
 
-    // loop through all the results and bind to the first we can
-    for (p = servinfo; p != NULL; p = p->ai_next)
+    // set master socket to allow multiple connections ,
+    // this is just a good habit, it will work without this
+    if (setsockopt(master_socket, SOL_SOCKET, SO_REUSEADDR, (char *)&opt,
+                   sizeof(opt)) < 0)
     {
-        if ((sockfd = socket(p->ai_family, p->ai_socktype,
-                             p->ai_protocol)) == -1)
-        {
-            perror("server: socket");
-            continue;
-        }
-
-        if (setsockopt(sockfd, SOL_SOCKET, SO_REUSEADDR, &yes,
-                       sizeof(int)) == -1)
-        {
-            perror("setsockopt");
-            exit(1);
-        }
-
-        if (bind(sockfd, p->ai_addr, p->ai_addrlen) == -1)
-        {
-            close(sockfd);
-            perror("server: bind");
-            continue;
-        }
-
-        break;
+        perror("setsockopt");
+        exit(EXIT_FAILURE);
     }
 
-    freeaddrinfo(servinfo); // all done with this structure
+    // socket config
+    address.sin_family = AF_INET;
+    address.sin_addr.s_addr = INADDR_ANY;
+    address.sin_port = htons(PORT);
 
-    if (p == NULL)
+    // bind master socket
+    if (bind(master_socket, (struct sockaddr *)&address, sizeof(address)) < 0)
     {
-        fprintf(stderr, "server: failed to bind\n");
-        exit(1);
+        perror("bind failed");
+        exit(EXIT_FAILURE);
     }
 
-    if (listen(sockfd, BACKLOG) == -1)
+    printf("Initiating Text Conferencing Server on %d\n", PORT);
+
+    // try to specify maximum of 3 pending connections for the master socket
+    if (listen(master_socket, 3) < 0)
     {
         perror("listen");
-        exit(1);
+        exit(EXIT_FAILURE);
     }
+
+    // accept the incoming connection
+    addrlen = sizeof(address);
+    printf("Waiting for connection...\n");
 
     while (1)
     {
-        int numbytes;
-        char buf[MAXBUFLEN];
+        int sd;
+        int max_sd;
 
-        printf("server: waiting for connections...\n");
+        // clear set
+        FD_ZERO(&readfds);
 
-        sin_size = sizeof their_addr;
-        new_fd = accept(sockfd, (struct sockaddr *)&their_addr, &sin_size);
-        if (new_fd == -1)
+        // add master socket to set
+        FD_SET(master_socket, &readfds);
+        max_sd = master_socket;
+
+        // add child sockets to set
+        for (int i = 0; i < MAX_CLIENTS; i++)
         {
-            perror("accept");
-            continue;
+            int sd = client_socket[i];
+            if (sd > 0)
+                FD_SET(sd, &readfds);
+
+            // highest file descriptor number, need it for the select function
+            if (sd > max_sd)
+                max_sd = sd;
         }
 
-        inet_ntop(their_addr.ss_family,
-                  get_in_addr((struct sockaddr *)&their_addr),
-                  s, sizeof s);
+        // wait for an activity on one of the sockets
+        activity = select(max_sd + 1, &readfds, NULL, NULL, NULL);
 
-        printf("server: got connection from %s\n", s);
-
-        if (send(new_fd, "Hello, world! Rama was here.\n", MAXBUFLEN, 0) == -1)
+        if ((activity < 0) && (errno != EINTR))
         {
-            perror("send");
+            printf("select error");
         }
 
-        if ((numbytes = recvfrom(new_fd, buf, MAXBUFLEN - 1, 0,
-                                 (struct sockaddr *)&their_addr, &sin_size)) == -1)
+        // If master socket, new connection
+        if (FD_ISSET(master_socket, &readfds))
         {
-            perror("recvfrom");
-            exit(1);
+            if ((new_socket = accept(master_socket,
+                                     (struct sockaddr *)&address, (socklen_t *)&addrlen)) < 0)
+            {
+                perror("accept");
+                exit(EXIT_FAILURE);
+            }
+
+            printf("> New connection, socket fd is %d , ip is : %s , port : %d\n", new_socket, inet_ntoa(address.sin_addr), ntohs(address.sin_port));
+
+            char *message = "Welcome!\n";
+            if (send(new_socket, message, strlen(message), 0) != strlen(message))
+            {
+                perror("send");
+            }
+
+            printf("> Welcome message sent successfully\n");
+
+            // add new socket to array of sockets
+            for (int i = 0; i < MAX_CLIENTS; i++)
+            {
+                // if position is empty
+                if (client_socket[i] == 0)
+                {
+                    client_socket[i] = new_socket;
+                    printf("> Adding to list of sockets as %d\n", i);
+                    break;
+                }
+            }
         }
 
-        printf("Received message from client: ");
-        printf(buf);
-        printf("TERMINATE connection");
+        // else other sockets
+        for (int i = 0; i < MAX_CLIENTS; i++)
+        {
+            sd = client_socket[i];
 
-        close(new_fd);
+            if (FD_ISSET(sd, &readfds))
+            {
+                if ((valread = read(sd, buffer, 1024)) == 0)
+                {
+                    // Check if it was for closing
+                    getpeername(sd, (struct sockaddr *)&address,
+                                (socklen_t *)&addrlen);
+                    printf("A client disconnected , ip %s , port %d \n",
+                           inet_ntoa(address.sin_addr), ntohs(address.sin_port));
+
+                    // Close the socket and mark as 0 in list for reuse
+                    close(sd);
+                    client_socket[i] = 0;
+                }
+                else
+                {
+                    // TODO: This is where we process the code we received
+                    printf("received reply from client: ");
+                    printf("%s", buffer);
+                    printf("\n");
+                }
+            }
+        }
     }
 
     exit(0);
