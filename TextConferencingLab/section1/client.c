@@ -114,7 +114,6 @@ void joinSession(char *session_id)
     {
         perror("send");
     }
-    close(sockfd);
 }
 
 void leaveSession()
@@ -128,7 +127,6 @@ void leaveSession()
     {
         perror("send");
     }
-    close(sockfd);
 }
 
 void createSession(char *session_id)
@@ -144,7 +142,6 @@ void createSession(char *session_id)
     {
         perror("send");
     }
-    close(sockfd);
 }
 
 void query()
@@ -158,7 +155,6 @@ void query()
     {
         perror("send");
     }
-    close(sockfd);
 }
 
 int main(int argc, char **argv)
