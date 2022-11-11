@@ -56,6 +56,7 @@ bool createClient(int sockfd, char *id, char *password)
         if (clients[i].sockfd == -1)
         {
             // this space is available in clients
+            // TODO: might need to copy this instead
             clients[i].sockfd = sockfd;
             clients[i].password = password;
             clients[i].id = id;
@@ -175,8 +176,34 @@ bool message(int sockfd, char *message)
     return true;
 }
 
+void initSessions()
+{
+    for (int i = 0; i < MAX_SESSIONS; i++)
+    {
+        strcpy(sessions[i].id, "");
+
+        for (int j = 0; j < MAX_CLIENTS_PER_SESSION; j++)
+        {
+            sessions[i].clientIndexes[j] = -1;
+        }
+    }
+}
+
+void initClients()
+{
+    for (int i = 0; i < MAX_CLIENTS; i++)
+    {
+        strcpy(clients[i].id, "");
+        strcpy(clients[i].password, "");
+        clients[i].sockfd = -1;
+    }
+}
+
 int main(int argc, char *argv[])
 {
+    // initClients();
+    // initSessions();
+
     int opt = 1;
     int master_socket, addrlen, new_socket, client_socket[MAX_CLIENTS], activity, valread;
     struct sockaddr_in address;
