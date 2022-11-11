@@ -1,6 +1,7 @@
 #include <stdio.h>
 #include <string.h> //strlen
 #include <stdlib.h>
+#include <stdbool.h>
 #include <errno.h>
 #include <unistd.h>    //close
 #include <arpa/inet.h> //close
@@ -9,25 +10,209 @@
 #include <netinet/in.h>
 #include <sys/time.h> //FD_SET, FD_ISSET, FD_ZERO macros
 
+#define MAXBUFLEN 100
 #define PORT 3000
 #define MAX_CLIENTS 30
+#define MAX_SESSIONS 5
+#define MAX_CLIENTS_PER_SESSION 5
 
 struct Client
 {
-    char *name;
-    int sd;
-    struct sockaddr_storage addr;
-    socklen_t addr_len;
+    char id[100];
+    char password[100];
+    int sockfd;
 };
 
 struct Session
 {
-    char *name;
-    struct Client clients[];
+    char id[100];
+    int clientIndexes[MAX_CLIENTS_PER_SESSION];
 };
+
+struct Session sessions[MAX_SESSIONS];
+struct Client clients[MAX_CLIENTS];
+
+int findClientIndexFromSockfd(int sockfd)
+{
+    for (int i = 0; i < MAX_CLIENTS; i++)
+    {
+        if (clients[i].sockfd == sockfd)
+        {
+            return i;
+        }
+    }
+
+    // this should never happen
+    return -1;
+}
+
+bool createClient(int sockfd, char *id, char *password)
+{
+    for (int i = 0; i < MAX_CLIENTS; i++)
+    {
+        if (clients[i].sockfd == -1)
+        {
+            // this space is available in clients
+            clients[i].sockfd = sockfd;
+            strcpy(clients[i].password, password);
+            strcpy(clients[i].id, id);
+            return true;
+        }
+    }
+
+    return false;
+}
+
+bool removeClient(int sockfd)
+{
+    for (int i = 0; i < MAX_CLIENTS; i++)
+    {
+        if (clients[i].sockfd == sockfd)
+        {
+            clients[i].sockfd = -1;
+            strcpy(clients[i].password, "");
+            strcpy(clients[i].id, "");
+        }
+    }
+}
+
+bool createSession(char *sessionId, char *password)
+{
+    for (int i = 0; i < MAX_SESSIONS; i++)
+    {
+        if (strlen(sessions[i].id) == 0)
+        {
+            // this space is available in sessions
+            strcpy(sessions[i].id, sessionId);
+            for (int j = 0; j < MAX_CLIENTS_PER_SESSION; j++)
+            {
+                // init to -1
+                sessions[i].clientIndexes[j] = -1;
+            }
+            return true;
+        }
+    }
+
+    // no available space in sessions
+    return false;
+}
+
+int joinSession(int sockfd, char *sessionId)
+{
+    int clientIndex = findClientIndexFromSockfd(sockfd);
+
+    for (int i = 0; i < MAX_SESSIONS; i++)
+    {
+        if (strcmp(sessionId, sessions[i].id) == 0)
+        {
+            // found session
+            for (int j = 0; j < MAX_CLIENTS_PER_SESSION; j++)
+            {
+                if (sessions[i].clientIndexes[j] == -1)
+                {
+                    // this place available in sockfds, save clientIndex
+                    sessions[i].clientIndexes[j] = clientIndex;
+                    return 0; // success
+                }
+            }
+
+            return 1; // failed - no space for client in session
+        }
+    }
+
+    return 2; // failed - session not found
+}
+
+bool leaveSession(int sockfd)
+{
+    int clientIndex = findClientIndexFromSockfd(sockfd);
+
+    for (int i = 0; i < MAX_SESSIONS; i++)
+    {
+        for (int j = 0; j < MAX_CLIENTS_PER_SESSION; j++)
+        {
+            if (sessions[i].clientIndexes[j] == clientIndex)
+            {
+                // client is found in this session, will be removed
+                sessions[i].clientIndexes[j] = -1;
+                return true;
+            }
+        }
+    }
+
+    return true;
+}
+
+bool message(int sockfd, char *message)
+{
+    int clientIndex = findClientIndexFromSockfd(sockfd);
+    int sessionIndex = -1;
+
+    // find session
+    for (int i = 0; i < MAX_SESSIONS; i++)
+    {
+        for (int j = 0; j < MAX_CLIENTS_PER_SESSION; j++)
+        {
+            if (sessions[i].clientIndexes[j] == clientIndex)
+            {
+                sessionIndex = i;
+            }
+        }
+    }
+
+    if (sessionIndex == -1)
+    {
+        // shouldn't reach here
+        printf("something went wrong!\n");
+        return false;
+    }
+
+    // send message to everyone in the session
+    for (int i = 0; i < MAX_CLIENTS_PER_SESSION; i++)
+    {
+        if (sessions[sessionIndex].clientIndexes[i] != -1)
+        {
+            // this is a client
+            int toSockfd = clients[sessions[sessionIndex].clientIndexes[i]].sockfd;
+            if (send(toSockfd, message, MAXBUFLEN, 0) == -1)
+            {
+                perror("send");
+                return false;
+            }
+        }
+    }
+
+    return true;
+}
+
+void initSessions()
+{
+    for (int i = 0; i < MAX_SESSIONS; i++)
+    {
+        strcpy(sessions[i].id, "");
+
+        for (int j = 0; j < MAX_CLIENTS_PER_SESSION; j++)
+        {
+            sessions[i].clientIndexes[j] = -1;
+        }
+    }
+}
+
+void initClients()
+{
+    for (int i = 0; i < MAX_CLIENTS; i++)
+    {
+        strcpy(clients[i].id, "");
+        strcpy(clients[i].password, "");
+        clients[i].sockfd = -1;
+    }
+}
 
 int main(int argc, char *argv[])
 {
+    initClients();
+    initSessions();
+
     int opt = 1;
     int master_socket, addrlen, new_socket, client_socket[MAX_CLIENTS], activity, valread;
     struct sockaddr_in address;
