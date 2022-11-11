@@ -33,10 +33,11 @@ int sockfd;
 struct sockaddr_in servaddr;
 socklen_t addr_len;
 int numbytes;
-char buf[MAXBUFLEN];
 
 void login(char *client_id, char *password, char *server_ip, char *server_port)
 {
+    char buf[MAXBUFLEN];
+
     printf("%s\n", client_id);
     printf("%s\n", password);
     printf("%s\n", server_ip);
@@ -69,7 +70,7 @@ void login(char *client_id, char *password, char *server_ip, char *server_port)
     }
     else
     {
-        printf("connected to the server..\n");
+        printf("connected to the server, attempting to log in\n");
     }
 
     if ((numbytes = recvfrom(sockfd, buf, MAXBUFLEN - 1, 0,
@@ -77,6 +78,24 @@ void login(char *client_id, char *password, char *server_ip, char *server_port)
     {
         perror("recvfrom");
         exit(1);
+    }
+
+    printf("%s\n", buf);
+
+    // now attempt to login
+    char * sizeStr;
+    sprintf(sizeStr, "%d", strlen(password));
+    
+    char *message = "LOGIN";
+    // strcat(message, sizeStr);
+    // strcat(message, ":");
+    // strcat(message, client_id);
+    // strcat(message, ":");
+    // strcat(message, password);
+
+    if (send(sockfd, message, MAXBUFLEN, 0) == -1)
+    {
+        perror("send");
     }
 }
 
