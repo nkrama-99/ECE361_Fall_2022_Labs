@@ -374,7 +374,7 @@ int main(int argc, char *argv[])
             {
                 if ((valread = read(sd, buffer, 1024)) == -1)
                 {
-                    printf("errno:%d", errno);
+                    printf("errno:%d\n", errno);
                     perror("read");
                 }
 
