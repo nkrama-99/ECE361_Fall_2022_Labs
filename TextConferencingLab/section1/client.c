@@ -28,111 +28,127 @@
 //     perror("send");
 // }
 
+// whether user is in a session
+bool insession = false;
+// supported commands
+int sockfd;
+struct sockaddr_in servaddr;
+socklen_t addr_len;
+int numbytes;
+char buf[MAXBUFLEN];
+
+void login()
+{
+
+    bzero(&servaddr, sizeof(servaddr));
+    // create socket
+    sockfd = socket(AF_INET, SOCK_STREAM, 0);
+    if (sockfd == -1)
+    {
+        printf("socket creation failed...\n");
+        // exit(0);
+    }
+    else
+    {
+        printf("Socket successfully created..\n");
+    }
+
+    // configure server address
+    char *ip = "127.0.0.1";
+    int port = 3000;
+    servaddr.sin_family = AF_INET;
+    servaddr.sin_addr.s_addr = inet_addr(ip);
+    servaddr.sin_port = htons(port);
+    addr_len = sizeof servaddr;
+
+    // connect the client socket to server socket
+    if (connect(sockfd, (struct sockaddr *)&servaddr, sizeof(servaddr)) != 0)
+    {
+        printf("connection with the server failed...\n");
+        // exit(1);
+    }
+    else
+    {
+        printf("connected to the server..\n");
+    }
+
+    if ((numbytes = recvfrom(sockfd, buf, MAXBUFLEN - 1, 0,
+                             (struct sockaddr *)&servaddr, &addr_len)) == -1)
+    {
+        perror("recvfrom");
+        // exit(1);
+    }
+}
+
+void logout()
+{
+    close(sockfd);
+}
+
 int main(int argc, char **argv)
 {
     bool isClientOn = true;
-    char *pch;
-    int toklen;
-    char buf[MAXBUFLEN];
-    // whether user is in a session
-    bool insession = false;
-    // supported commands
-    int sockfd;
-    struct sockaddr_in servaddr;
-    socklen_t addr_len;
-    int numbytes;
 
-    bzero(&servaddr, sizeof(servaddr));
-
-    while (1)
+    while (isClientOn == true)
     {
-        char *pch;
-        int toklen;
-
-        fgets(buf, 100 - 1, stdin);
+        char *cmd;
+        char buf[100];
+        fgets(buf, 100, stdin);
         buf[strcspn(buf, "\n")] = 0;
-        pch = buf;
-        while (*pch == ' ')
-            pch++;
-        if (*pch == 0)
+        cmd = strtok(buf, " ");
+
+        if (strcmp(cmd, "/login") == 0)
         {
-            continue;
+            char *client_id;
+            char *password;
+            char *server_ip;
+            char *server_port;
+
+            client_id = strtok(NULL, " ");
+            password = strtok(NULL, " ");
+            server_ip = strtok(NULL, " ");
+            server_port = strtok(NULL, " ");
+
+            printf("%s\n", client_id);
+            printf("%s\n", password);
+            printf("%s\n", server_ip);
+            printf("%s\n", server_port);
         }
-        pch = strtok(buf, " ");
-        toklen = strlen(pch);
-
-        if (strcmp(pch, "/login") == 0)
+        else if (strcmp(cmd, "/logout") == 0)
         {
-            // create socket
-            sockfd = socket(AF_INET, SOCK_STREAM, 0);
-            if (sockfd == -1)
-            {
-                printf("socket creation failed...\n");
-                exit(0);
-            }
-            else
-            {
-                printf("Socket successfully created..\n");
-            }
 
-            // configure server address
-            char *ip = "127.0.0.1";
-            int port = 3000;
-            servaddr.sin_family = AF_INET;
-            servaddr.sin_addr.s_addr = inet_addr(ip);
-            servaddr.sin_port = htons(port);
-            addr_len = sizeof servaddr;
-
-            // connect the client socket to server socket
-            if (connect(sockfd, (struct sockaddr *)&servaddr, sizeof(servaddr)) != 0)
-            {
-                printf("connection with the server failed...\n");
-                exit(1);
-            }
-            else
-            {
-                printf("connected to the server..\n");
-            }
-
-            if ((numbytes = recvfrom(sockfd, buf, MAXBUFLEN - 1, 0,
-                                     (struct sockaddr *)&servaddr, &addr_len)) == -1)
-            {
-                perror("recvfrom");
-                exit(1);
-            }
-
-            printf("%s\n", buf);
-        }
-        else if (strcmp(pch, "/logout") == 0)
-        {
-            close(sockfd);
             printf("you have logged out\n");
         }
-        else if (strcmp(pch, "/joinsession") == 0)
+        else if (strcmp(cmd, "/joinsession") == 0)
         {
             printf("you have joined the session\n");
+            char *session_id = strtok(NULL, " ");
+            printf("%s\n", session_id);
         }
-        else if (strcmp(pch, "/leavesession") == 0)
+        else if (strcmp(cmd, "/leavesession") == 0)
         {
             printf("you have left the session\n");
         }
-        else if (strcmp(pch, "/createsession") == 0)
+        else if (strcmp(cmd, "/createsession") == 0)
         {
             printf("you have created a session\n");
+            char *session_id = strtok(NULL, " ");
+            printf("%s\n", session_id);
         }
-        else if (strcmp(pch, "/list") == 0)
+        else if (strcmp(cmd, "/list") == 0)
         {
             printf("here is a list of active clients and sessions:\n");
         }
-        else if (strcmp(pch, "/quit") == 0)
+        else if (strcmp(cmd, "/quit") == 0)
         {
             printf("terminating session\n");
             break;
         }
         else
         {
-            buf[toklen] = ' ';
+            printf("invalid command");
         }
+        memset(buf, '0', 100);
     }
     fprintf(stdout, "You have quit successfully.\n");
     return 0;
