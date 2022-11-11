@@ -220,8 +220,7 @@ int main(int argc, char **argv)
         }
         else
         {
-            printf("invalid command\n");
-            break;
+            printf("invalid command, try something else\n");
         }
         memset(buf, '0', 100);
     }

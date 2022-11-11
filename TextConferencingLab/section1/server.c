@@ -67,14 +67,15 @@ void printAllSessions()
         if (strlen(sessions[i].id) != 0)
         {
             printf("- index: %d | id: %s \n", i, sessions[i].id);
-            printf("- client indexes:\n");
+            printf("  -- clients:\n");
             for (int j = 0; j < MAX_CLIENTS_PER_SESSION; j++)
             {
                 if (sessions[i].clientIndexes[j] != -1)
                 {
-                    printf("-- %d", sessions[i].clientIndexes[j]);
+                    printf("     --- clientIndex: %d | clientId: %s\n", sessions[i].clientIndexes[j], clients[sessions[i].clientIndexes[j]].id);
                 }
             }
+            printf("\n");
         }
     }
     printf("\n");
@@ -113,7 +114,7 @@ bool removeClient(int sockfd)
     }
 }
 
-bool createSession(char *sessionId, char *password)
+bool createSession(char *sessionId)
 {
     for (int i = 0; i < MAX_SESSIONS; i++)
     {
@@ -414,6 +415,11 @@ int main(int argc, char *argv[])
                 else if (strcmp(type, "JOIN") == 0)
                 {
                     printf("join session\n");
+                    if (joinSession(sd, data) == true) {
+                        
+                    } else {
+
+                    }
                 }
                 else if (strcmp(type, "LEAVE_SESS") == 0)
                 {
@@ -422,6 +428,11 @@ int main(int argc, char *argv[])
                 else if (strcmp(type, "NEW_SESS") == 0)
                 {
                     printf("new session\n");
+                    if (createSession(data) == true) {
+                        
+                    } else {
+
+                    }
                 }
                 else if (strcmp(type, "QUERY") == 0)
                 {
