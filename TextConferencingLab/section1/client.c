@@ -75,19 +75,33 @@ void login(char *password, char *server_ip, char *server_port)
         printf("connected to the server, attempting to log in\n");
     }
 
+    // this recv is for master socket handshake, not removing it for now
     if ((numbytes = recvfrom(sockfd, buf, MAXBUFLEN - 1, 0,
                              (struct sockaddr *)&servaddr, &addr_len)) == -1)
     {
         perror("recvfrom");
         exit(1);
     }
+    strcpy(buf, "");
 
     if (send(sockfd, message, MAXBUFLEN, 0) == -1)
     {
         perror("send");
     }
 
-    // wait for login_ack
+    // // wait for login_ack
+    // if ((numbytes = recvfrom(sockfd, buf, MAXBUFLEN - 1, 0,
+    //                          (struct sockaddr *)&servaddr, &addr_len)) == -1)
+    // {
+    //     perror("recvfrom");
+    //     exit(1);
+    // }
+
+    // // printf("response: %s\n", buf);
+    // if (strcmp(buf, "LO_ACK") == 0)
+    // {
+    //     printf("logged in successfully\n");
+    // }
 }
 
 void logout()
@@ -102,6 +116,8 @@ void logout()
         perror("send");
     }
     close(sockfd);
+
+    printf("logged out and disconnected from server\n");
 }
 
 void joinSession(char *session_id)

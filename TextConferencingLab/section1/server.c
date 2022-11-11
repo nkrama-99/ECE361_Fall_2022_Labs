@@ -358,7 +358,7 @@ int main(int argc, char *argv[])
                 perror("send");
             }
 
-            printf("> Welcome message sent successfully\n");
+            // printf("> Welcome message sent successfully\n");
 
             // add new socket to array of sockets
             for (int i = 0; i < MAX_CLIENTS; i++)
@@ -385,7 +385,7 @@ int main(int argc, char *argv[])
                     // Check if it was for closing
                     getpeername(sd, (struct sockaddr *)&address,
                                 (socklen_t *)&addrlen);
-                    printf("A client disconnected , ip %s , port %d \n",
+                    printf("> A client disconnected , ip %s , port %d \n",
                            inet_ntoa(address.sin_addr), ntohs(address.sin_port));
 
                     // Close the socket and mark as 0 in list for reuse
@@ -409,7 +409,23 @@ int main(int argc, char *argv[])
                     if (strcmp(type, "LOGIN") == 0)
                     {
                         printf("login\n");
-                        createClient(sd, source, data);
+                        if (createClient(sd, source, data) == true)
+                        {
+                            printf("login success\n");
+                            char *message = "LO_ACK";
+                            // if (send(sd, message, MAXBUFLEN, 0) == -1)
+                            // {
+                            //     perror("send");
+                            // }
+                        }
+                        else
+                        {
+                            char *message = "LO_NAK";
+                            // if (send(sd, message, MAXBUFLEN, 0) == -1)
+                            // {
+                            //     perror("send");
+                            // }
+                        }
                     }
                     else if (strcmp(type, "JOIN") == 0)
                     {
@@ -430,6 +446,8 @@ int main(int argc, char *argv[])
                     else if (strcmp(type, "EXIT") == 0)
                     {
                         printf("client exit\n");
+                        // removes client from global clients
+                        // if statement takes care of disconnection in next iteration of loop
                         removeClient(sd);
                     }
                 }
