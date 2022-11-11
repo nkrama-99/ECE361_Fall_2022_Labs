@@ -18,17 +18,14 @@
 
 struct Client
 {
-    char *id;
-    char *password;
+    char id[100];
+    char password[100];
     int sockfd;
-    // I don't think these are needed
-    // struct sockaddr_storage addr;
-    // socklen_t addr_len;
 };
 
 struct Session
 {
-    char *id;
+    char id[100];
     int clientIndexes[MAX_CLIENTS_PER_SESSION];
 };
 
@@ -56,15 +53,27 @@ bool createClient(int sockfd, char *id, char *password)
         if (clients[i].sockfd == -1)
         {
             // this space is available in clients
-            // TODO: might need to copy this instead
             clients[i].sockfd = sockfd;
-            clients[i].password = password;
-            clients[i].id = id;
+            strcpy(clients[i].password, password);
+            strcpy(clients[i].id, id);
             return true;
         }
     }
 
     return false;
+}
+
+bool removeClient(int sockfd)
+{
+    for (int i = 0; i < MAX_CLIENTS; i++)
+    {
+        if (clients[i].sockfd == sockfd)
+        {
+            clients[i].sockfd = -1;
+            strcpy(clients[i].password, "");
+            strcpy(clients[i].id, "");
+        }
+    }
 }
 
 bool createSession(char *sessionId, char *password)
@@ -74,7 +83,7 @@ bool createSession(char *sessionId, char *password)
         if (strlen(sessions[i].id) == 0)
         {
             // this space is available in sessions
-            sessions[i].id = sessionId;
+            strcpy(sessions[i].id, sessionId);
             for (int j = 0; j < MAX_CLIENTS_PER_SESSION; j++)
             {
                 // init to -1
@@ -201,8 +210,8 @@ void initClients()
 
 int main(int argc, char *argv[])
 {
-    // initClients();
-    // initSessions();
+    initClients();
+    initSessions();
 
     int opt = 1;
     int master_socket, addrlen, new_socket, client_socket[MAX_CLIENTS], activity, valread;
