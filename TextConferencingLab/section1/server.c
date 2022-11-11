@@ -378,76 +378,62 @@ int main(int argc, char *argv[])
                     perror("read");
                 }
 
-                if (valread == 0)
-                {
-                    // Check if it was for closing
-                    getpeername(sd, (struct sockaddr *)&address,
-                                (socklen_t *)&addrlen);
-                    printf("> A client disconnected , ip %s , port %d \n",
-                           inet_ntoa(address.sin_addr), ntohs(address.sin_port));
+                // This is where we process the code we received
+                printf("received reply from client: ");
+                printf("%s", buffer);
+                printf("\n");
 
-                    // Close the socket and mark as 0 in list for reuse
+                char *type = strtok(buffer, ":");
+                char *size = strtok(NULL, ":");
+                char *source = strtok(NULL, ":");
+                char *data = strtok(NULL, ":");
+
+                printf("type: %s , size: %s , source: %s , data: %s\n", type, size, source, data);
+
+                if (strcmp(type, "LOGIN") == 0)
+                {
+                    printf("login\n");
+                    if (createClient(sd, source, data) == true)
+                    {
+                        printf("login success\n");
+                        char *message = "LO_ACK";
+                        if (send(sd, message, MAXBUFLEN, 0) == -1)
+                        {
+                            perror("send");
+                        }
+                    }
+                    else
+                    {
+                        char *message = "LO_NAK";
+                        if (send(sd, message, MAXBUFLEN, 0) == -1)
+                        {
+                            perror("send");
+                        }
+                    }
+                }
+                else if (strcmp(type, "JOIN") == 0)
+                {
+                    printf("join session\n");
+                }
+                else if (strcmp(type, "LEAVE_SESS") == 0)
+                {
+                    printf("leave session\n");
+                }
+                else if (strcmp(type, "NEW_SESS") == 0)
+                {
+                    printf("new session\n");
+                }
+                else if (strcmp(type, "QUERY") == 0)
+                {
+                    printf("query\n");
+                }
+                else if (strcmp(type, "EXIT") == 0)
+                {
+                    printf("client exit\n");
+                    // need to remove from sessions?
+                    removeClient(sd);
                     close(sd);
                     client_socket[i] = 0;
-                }
-                else
-                {
-                    // TODO: This is where we process the code we received
-                    printf("received reply from client: ");
-                    printf("%s", buffer);
-                    printf("\n");
-
-                    char *type = strtok(buffer, ":");
-                    char *size = strtok(NULL, ":");
-                    char *source = strtok(NULL, ":");
-                    char *data = strtok(NULL, ":");
-
-                    printf("type: %s , size: %s , source: %s , data: %s\n", type, size, source, data);
-
-                    if (strcmp(type, "LOGIN") == 0)
-                    {
-                        printf("login\n");
-                        if (createClient(sd, source, data) == true)
-                        {
-                            printf("login success\n");
-                            char *message = "LO_ACK";
-                            // if (send(sd, message, MAXBUFLEN, 0) == -1)
-                            // {
-                            //     perror("send");
-                            // }
-                        }
-                        else
-                        {
-                            char *message = "LO_NAK";
-                            // if (send(sd, message, MAXBUFLEN, 0) == -1)
-                            // {
-                            //     perror("send");
-                            // }
-                        }
-                    }
-                    else if (strcmp(type, "JOIN") == 0)
-                    {
-                        printf("join session\n");
-                    }
-                    else if (strcmp(type, "LEAVE_SESS") == 0)
-                    {
-                        printf("leave session\n");
-                    }
-                    else if (strcmp(type, "NEW_SESS") == 0)
-                    {
-                        printf("new session\n");
-                    }
-                    else if (strcmp(type, "QUERY") == 0)
-                    {
-                        printf("query\n");
-                    }
-                    else if (strcmp(type, "EXIT") == 0)
-                    {
-                        printf("client exit\n");
-                        // removes client from global clients
-                        // if statement takes care of disconnection in next iteration of loop
-                        removeClient(sd);
-                    }
                 }
             }
         }

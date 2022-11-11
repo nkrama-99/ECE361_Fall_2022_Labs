@@ -80,19 +80,19 @@ void login(char *password, char *server_ip, char *server_port)
         perror("send");
     }
 
-    // // wait for login_ack
-    // if ((numbytes = recvfrom(sockfd, buf, MAXBUFLEN - 1, 0,
-    //                          (struct sockaddr *)&servaddr, &addr_len)) == -1)
-    // {
-    //     perror("recvfrom");
-    //     exit(1);
-    // }
+    // wait for login_ack
+    if ((numbytes = recvfrom(sockfd, buf, MAXBUFLEN - 1, 0,
+                             (struct sockaddr *)&servaddr, &addr_len)) == -1)
+    {
+        perror("recvfrom");
+        exit(1);
+    }
 
-    // // printf("response: %s\n", buf);
-    // if (strcmp(buf, "LO_ACK") == 0)
-    // {
-    //     printf("logged in successfully\n");
-    // }
+    // printf("response: %s\n", buf);
+    if (strcmp(buf, "LO_ACK") == 0)
+    {
+        printf("logged in successfully\n");
+    }
 }
 
 void logout()
