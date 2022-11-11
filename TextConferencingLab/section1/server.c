@@ -380,7 +380,13 @@ int main(int argc, char *argv[])
 
             if (FD_ISSET(sd, &readfds))
             {
-                if ((valread = read(sd, buffer, 1024)) == 0)
+                if ((valread = read(sd, buffer, 1024)) == -1)
+                {
+                    printf("errno:%d", errno);
+                    perror("read");
+                }
+
+                if (valread == 0)
                 {
                     // Check if it was for closing
                     getpeername(sd, (struct sockaddr *)&address,
