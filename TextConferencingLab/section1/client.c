@@ -35,8 +35,12 @@ socklen_t addr_len;
 int numbytes;
 char buf[MAXBUFLEN];
 
-void login()
+void login(char *client_id, char *password, char *server_ip, char *server_port)
 {
+    printf("%s\n", client_id);
+    printf("%s\n", password);
+    printf("%s\n", server_ip);
+    printf("%s\n", server_port);
 
     bzero(&servaddr, sizeof(servaddr));
     // create socket
@@ -97,22 +101,12 @@ int main(int argc, char **argv)
 
         if (strcmp(cmd, "/login") == 0)
         {
-            char *client_id;
-            char *password;
-            char *server_ip;
-            char *server_port;
+            char *client_id = strtok(NULL, " ");
+            char *password = strtok(NULL, " ");
+            char *server_ip = strtok(NULL, " ");
+            char *server_port = strtok(NULL, " ");
 
-            client_id = strtok(NULL, " ");
-            password = strtok(NULL, " ");
-            server_ip = strtok(NULL, " ");
-            server_port = strtok(NULL, " ");
-
-            printf("%s\n", client_id);
-            printf("%s\n", password);
-            printf("%s\n", server_ip);
-            printf("%s\n", server_port);
-
-            login();
+            login(client_id, password, server_ip, server_port);
         }
         else if (strcmp(cmd, "/logout") == 0)
         {
