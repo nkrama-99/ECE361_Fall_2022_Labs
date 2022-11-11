@@ -28,9 +28,7 @@
 //     perror("send");
 // }
 
-// whether user is in a session
-bool insession = false;
-// supported commands
+bool insession = false; // whether user is in a session
 int sockfd;
 struct sockaddr_in servaddr;
 socklen_t addr_len;
@@ -46,7 +44,7 @@ void login()
     if (sockfd == -1)
     {
         printf("socket creation failed...\n");
-        // exit(0);
+        exit(1);
     }
     else
     {
@@ -65,7 +63,7 @@ void login()
     if (connect(sockfd, (struct sockaddr *)&servaddr, sizeof(servaddr)) != 0)
     {
         printf("connection with the server failed...\n");
-        // exit(1);
+        exit(1);
     }
     else
     {
@@ -76,7 +74,7 @@ void login()
                              (struct sockaddr *)&servaddr, &addr_len)) == -1)
     {
         perror("recvfrom");
-        // exit(1);
+        exit(1);
     }
 }
 
@@ -113,10 +111,12 @@ int main(int argc, char **argv)
             printf("%s\n", password);
             printf("%s\n", server_ip);
             printf("%s\n", server_port);
+
+            login();
         }
         else if (strcmp(cmd, "/logout") == 0)
         {
-
+            logout();
             printf("you have logged out\n");
         }
         else if (strcmp(cmd, "/joinsession") == 0)
