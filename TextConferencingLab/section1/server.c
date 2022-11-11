@@ -29,11 +29,42 @@ struct Client
 struct Session
 {
     char *id;
-    int sockfds[MAX_CLIENTS_PER_SESSION];
+    int clientIndexes[MAX_CLIENTS_PER_SESSION];
 };
 
 struct Session sessions[MAX_SESSIONS];
-struct Client client[MAX_CLIENTS];
+struct Client clients[MAX_CLIENTS];
+
+int findClientIndexFromSockfd(int sockfd)
+{
+    for (int i = 0; i < MAX_CLIENTS; i++)
+    {
+        if (clients[i].sockfd == sockfd)
+        {
+            return i;
+        }
+    }
+
+    // this should never happen
+    return -1;
+}
+
+bool createClient(int sockfd, char *id, char *password)
+{
+    for (int i = 0; i < MAX_CLIENTS; i++)
+    {
+        if (clients[i].sockfd == -1)
+        {
+            // this space is available in clients
+            clients[i].sockfd = sockfd;
+            clients[i].password = password;
+            clients[i].id = id;
+            return true;
+        }
+    }
+
+    return false;
+}
 
 bool createSession(char *sessionId, char *password)
 {
@@ -45,7 +76,8 @@ bool createSession(char *sessionId, char *password)
             sessions[i].id = sessionId;
             for (int j = 0; j < MAX_CLIENTS_PER_SESSION; j++)
             {
-                sessions[i].sockfds[j] = -1;
+                // init to -1
+                sessions[i].clientIndexes[j] = -1;
             }
             return true;
         }
@@ -57,6 +89,8 @@ bool createSession(char *sessionId, char *password)
 
 int joinSession(int sockfd, char *sessionId)
 {
+    int clientIndex = findClientIndexFromSockfd(sockfd);
+
     for (int i = 0; i < MAX_SESSIONS; i++)
     {
         if (strcmp(sessionId, sessions[i].id) == 0)
@@ -64,10 +98,10 @@ int joinSession(int sockfd, char *sessionId)
             // found session
             for (int j = 0; j < MAX_CLIENTS_PER_SESSION; j++)
             {
-                if (sessions[i].sockfds[j] == -1)
+                if (sessions[i].clientIndexes[j] == -1)
                 {
-                    // this place available in sockfds
-                    sessions[i].sockfds[j] = sockfd;
+                    // this place available in sockfds, save clientIndex
+                    sessions[i].clientIndexes[j] = clientIndex;
                     return 0; // success
                 }
             }
@@ -81,14 +115,16 @@ int joinSession(int sockfd, char *sessionId)
 
 bool leaveSession(int sockfd)
 {
+    int clientIndex = findClientIndexFromSockfd(sockfd);
+
     for (int i = 0; i < MAX_SESSIONS; i++)
     {
         for (int j = 0; j < MAX_CLIENTS_PER_SESSION; j++)
         {
-            if (sessions[i].sockfds[j] == sockfd)
+            if (sessions[i].clientIndexes[j] == clientIndex)
             {
                 // client is found in this session, will be removed
-                sessions[i].sockfds[j] = -1;
+                sessions[i].clientIndexes[j] = -1;
                 return true;
             }
         }
@@ -99,6 +135,7 @@ bool leaveSession(int sockfd)
 
 bool message(int sockfd, char *message)
 {
+    int clientIndex = findClientIndexFromSockfd(sockfd);
     int sessionIndex = -1;
 
     // find session
@@ -106,7 +143,7 @@ bool message(int sockfd, char *message)
     {
         for (int j = 0; j < MAX_CLIENTS_PER_SESSION; j++)
         {
-            if (sessions[i].sockfds[j] == sockfd)
+            if (sessions[i].clientIndexes[j] == clientIndex)
             {
                 sessionIndex = i;
             }
@@ -123,10 +160,11 @@ bool message(int sockfd, char *message)
     // send message to everyone in the session
     for (int i = 0; i < MAX_CLIENTS_PER_SESSION; i++)
     {
-        if (sessions[sessionIndex].sockfds[i] != -1)
+        if (sessions[sessionIndex].clientIndexes[i] != -1)
         {
             // this is a client
-            if (send(sockfd, message, MAXBUFLEN, 0) == -1)
+            int toSockfd = clients[sessions[sessionIndex].clientIndexes[i]].sockfd;
+            if (send(toSockfd, message, MAXBUFLEN, 0) == -1)
             {
                 perror("send");
                 return false;
