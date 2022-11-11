@@ -99,6 +99,7 @@ bool createSession(char *sessionId, char *password)
 
 int joinSession(int sockfd, char *sessionId)
 {
+
     int clientIndex = findClientIndexFromSockfd(sockfd);
 
     for (int i = 0; i < MAX_SESSIONS; i++)
@@ -360,15 +361,23 @@ int main(int argc, char *argv[])
                     printf("%s", buffer);
                     printf("\n");
 
-                    char *cmd = strtok(buffer, ":");
+                    char *type = strtok(buffer, ":");
                     char *size = strtok(NULL, ":");
                     char *source = strtok(NULL, ":");
                     char *data = strtok(NULL, ":");
 
-                    printf("%s\n", cmd);
-                    printf("%s\n", size);
-                    printf("%s\n", source);
-                    printf("%s\n", data);
+                    if (strcmp(type, "JOIN") == 0) {
+                        printf("join session\n");
+                    }
+                    else if (strcmp(type, "LEAVE_SESS") == 0) {
+                       printf("leave session\n");
+                    }
+                    else if (strcmp(type, "NEW_SESS") == 0) {
+                       printf("new session\n");
+                    }
+                    else if (strcmp(type, "QUERY") == 0) {
+                       printf("query\n");
+                    }
                 }
             }
         }

@@ -33,9 +33,9 @@ int sockfd;
 struct sockaddr_in servaddr;
 socklen_t addr_len;
 int numbytes;
-char *client_id;
+char set_client_id[100];
 
-void login(char *client_id, char *password, char *server_ip, char *server_port)
+void login(char *password, char *server_ip, char *server_port)
 {
     char buf[MAXBUFLEN];
     char message[100] = "";
@@ -43,7 +43,7 @@ void login(char *client_id, char *password, char *server_ip, char *server_port)
     char size[64];
     sprintf(size, "%d", strlen(password));
 
-    sprintf(message, "%s:%s:%s:%s", type, size, client_id, password);
+    sprintf(message, "%s:%s:%s:%s", type, size, set_client_id, password);
 
     bzero(&servaddr, sizeof(servaddr));
     // create socket
@@ -93,7 +93,7 @@ void logout()
     char message[100] = "";
     char type[] = "EXIT";
 
-    sprintf(message, "%s:%s:%s:%s", type, "0", client_id, "");
+    sprintf(message, "%s:%s:%s:%s", type, "0", set_client_id, "");
 
     if (send(sockfd, message, MAXBUFLEN, 0) == -1)
     {
@@ -108,8 +108,7 @@ void joinSession(char *session_id)
     char type[] = "JOIN";
     char size[64];
     sprintf(size, "%d", strlen(session_id));
-
-    sprintf(message, "%s:%s:%s:%s", type, size, client_id, session_id);
+    sprintf(message, "%s:%s:%s:%s", type, size, set_client_id, session_id);
 
     if (send(sockfd, message, MAXBUFLEN, 0) == -1)
     {
@@ -121,9 +120,9 @@ void joinSession(char *session_id)
 void leaveSession()
 {
     char message[100] = "";
-    char type[] = "LEAVE_SESSION";
+    char type[] = "LEAVE_SESS";
 
-    sprintf(message, "%s:%s:%s:%s", type, "0", client_id, "");
+    sprintf(message, "%s:%s:%s:%s", type, "0", set_client_id, "");
 
     if (send(sockfd, message, MAXBUFLEN, 0) == -1)
     {
@@ -135,11 +134,11 @@ void leaveSession()
 void createSession(char *session_id)
 {
     char message[100] = "";
-    char type[] = "NEW_SESSION";
+    char type[] = "NEW_SESS";
     char size[64];
     sprintf(size, "%d", strlen(session_id));
 
-    sprintf(message, "%s:%s:%s:%s", type, size, client_id, session_id);
+    sprintf(message, "%s:%s:%s:%s", type, size, set_client_id, session_id);
 
     if (send(sockfd, message, MAXBUFLEN, 0) == -1)
     {
@@ -151,9 +150,9 @@ void createSession(char *session_id)
 void query()
 {
     char message[100] = "";
-    char type[] = "LEAVE_SESSION";
+    char type[] = "QUERY";
 
-    sprintf(message, "%s:%s:%s:%s", type, "0", client_id, "");
+    sprintf(message, "%s:%s:%s:%s", type, "0", set_client_id, "");
 
     if (send(sockfd, message, MAXBUFLEN, 0) == -1)
     {
@@ -176,12 +175,13 @@ int main(int argc, char **argv)
 
         if (strcmp(cmd, "/login") == 0)
         {
-            client_id = strtok(NULL, " ");
+            char *client_id = strtok(NULL, " ");
+            strcpy(set_client_id, client_id);
             char *password = strtok(NULL, " ");
             char *server_ip = strtok(NULL, " ");
             char *server_port = strtok(NULL, " ");
 
-            login(client_id, password, server_ip, server_port);
+            login(password, server_ip, server_port);
         }
         else if (strcmp(cmd, "/logout") == 0)
         {
