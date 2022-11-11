@@ -42,6 +42,15 @@ void login(char *client_id, char *password, char *server_ip, char *server_port)
     printf("%s\n", server_ip);
     printf("%s\n", server_port);
 
+    
+	char message[100] = "";
+    char type[] = "LOGIN";
+    char size[64];
+    sprintf(size, "%d", strlen(password));
+
+    sprintf(message, "%s:%s:%s:%s", type, size, client_id, password);
+	printf("%s\n", message);
+
     bzero(&servaddr, sizeof(servaddr));
     // create socket
     sockfd = socket(AF_INET, SOCK_STREAM, 0);
