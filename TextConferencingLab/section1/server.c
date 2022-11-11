@@ -174,6 +174,16 @@ int main(int argc, char *argv[])
                     printf("received reply from client: ");
                     printf("%s", buffer);
                     printf("\n");
+
+                    char *cmd = strtok(buffer, ":");
+                    char *size = strtok(NULL, ":");
+                    char *source = strtok(NULL, ":");
+                    char *data = strtok(NULL, ":");
+
+                    printf("%s\n", cmd);
+                    printf("%s\n", size);
+                    printf("%s\n", source);
+                    printf("%s\n", data);
                 }
             }
         }

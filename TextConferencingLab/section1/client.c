@@ -33,24 +33,17 @@ int sockfd;
 struct sockaddr_in servaddr;
 socklen_t addr_len;
 int numbytes;
+char *client_id;
 
 void login(char *client_id, char *password, char *server_ip, char *server_port)
 {
     char buf[MAXBUFLEN];
-
-    printf("%s\n", client_id);
-    printf("%s\n", password);
-    printf("%s\n", server_ip);
-    printf("%s\n", server_port);
-
-    
-	char message[100] = "";
+    char message[100] = "";
     char type[] = "LOGIN";
     char size[64];
     sprintf(size, "%d", strlen(password));
 
     sprintf(message, "%s:%s:%s:%s", type, size, client_id, password);
-	printf("%s\n", message);
 
     bzero(&servaddr, sizeof(servaddr));
     // create socket
@@ -89,19 +82,6 @@ void login(char *client_id, char *password, char *server_ip, char *server_port)
         exit(1);
     }
 
-    printf("%s\n", buf);
-
-    // now attempt to login
-    char * sizeStr;
-    sprintf(sizeStr, "%d", strlen(password));
-    
-    char *message = "LOGIN";
-    // strcat(message, sizeStr);
-    // strcat(message, ":");
-    // strcat(message, client_id);
-    // strcat(message, ":");
-    // strcat(message, password);
-
     if (send(sockfd, message, MAXBUFLEN, 0) == -1)
     {
         perror("send");
@@ -110,6 +90,75 @@ void login(char *client_id, char *password, char *server_ip, char *server_port)
 
 void logout()
 {
+    char message[100] = "";
+    char type[] = "EXIT";
+
+    sprintf(message, "%s:%s:%s:%s", type, "0", client_id, "");
+
+    if (send(sockfd, message, MAXBUFLEN, 0) == -1)
+    {
+        perror("send");
+    }
+    close(sockfd);
+}
+
+void joinSession(char *session_id)
+{
+    char message[100] = "";
+    char type[] = "JOIN";
+    char size[64];
+    sprintf(size, "%d", strlen(session_id));
+
+    sprintf(message, "%s:%s:%s:%s", type, size, client_id, session_id);
+
+    if (send(sockfd, message, MAXBUFLEN, 0) == -1)
+    {
+        perror("send");
+    }
+    close(sockfd);
+}
+
+void leaveSession()
+{
+    char message[100] = "";
+    char type[] = "LEAVE_SESSION";
+
+    sprintf(message, "%s:%s:%s:%s", type, "0", client_id, "");
+
+    if (send(sockfd, message, MAXBUFLEN, 0) == -1)
+    {
+        perror("send");
+    }
+    close(sockfd);
+}
+
+void createSession(char *session_id)
+{
+    char message[100] = "";
+    char type[] = "NEW_SESSION";
+    char size[64];
+    sprintf(size, "%d", strlen(session_id));
+
+    sprintf(message, "%s:%s:%s:%s", type, size, client_id, session_id);
+
+    if (send(sockfd, message, MAXBUFLEN, 0) == -1)
+    {
+        perror("send");
+    }
+    close(sockfd);
+}
+
+void query()
+{
+    char message[100] = "";
+    char type[] = "LEAVE_SESSION";
+
+    sprintf(message, "%s:%s:%s:%s", type, "0", client_id, "");
+
+    if (send(sockfd, message, MAXBUFLEN, 0) == -1)
+    {
+        perror("send");
+    }
     close(sockfd);
 }
 
@@ -127,7 +176,7 @@ int main(int argc, char **argv)
 
         if (strcmp(cmd, "/login") == 0)
         {
-            char *client_id = strtok(NULL, " ");
+            client_id = strtok(NULL, " ");
             char *password = strtok(NULL, " ");
             char *server_ip = strtok(NULL, " ");
             char *server_port = strtok(NULL, " ");
@@ -137,27 +186,27 @@ int main(int argc, char **argv)
         else if (strcmp(cmd, "/logout") == 0)
         {
             logout();
-            printf("you have logged out\n");
         }
         else if (strcmp(cmd, "/joinsession") == 0)
         {
             printf("you have joined the session\n");
             char *session_id = strtok(NULL, " ");
-            printf("%s\n", session_id);
+            joinSession(session_id);
         }
         else if (strcmp(cmd, "/leavesession") == 0)
         {
             printf("you have left the session\n");
+            leaveSession();
         }
         else if (strcmp(cmd, "/createsession") == 0)
         {
             printf("you have created a session\n");
             char *session_id = strtok(NULL, " ");
-            printf("%s\n", session_id);
+            createSession(session_id);
         }
         else if (strcmp(cmd, "/list") == 0)
         {
-            printf("here is a list of active clients and sessions:\n");
+            query();
         }
         else if (strcmp(cmd, "/quit") == 0)
         {
@@ -166,7 +215,8 @@ int main(int argc, char **argv)
         }
         else
         {
-            printf("invalid command");
+            printf("invalid command\n");
+            break;
         }
         memset(buf, '0', 100);
     }
