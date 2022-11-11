@@ -56,11 +56,9 @@ void login(char *client_id, char *password, char *server_ip, char *server_port)
     }
 
     // configure server address
-    char *ip = "127.0.0.1";
-    int port = 3000;
     servaddr.sin_family = AF_INET;
-    servaddr.sin_addr.s_addr = inet_addr(ip);
-    servaddr.sin_port = htons(port);
+    servaddr.sin_addr.s_addr = inet_addr(server_ip);
+    servaddr.sin_port = htons(atoi(server_port));
     addr_len = sizeof servaddr;
 
     // connect the client socket to server socket
