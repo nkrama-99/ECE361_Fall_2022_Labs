@@ -424,6 +424,11 @@ int main(int argc, char *argv[])
                 else if (strcmp(type, "LEAVE_SESS") == 0)
                 {
                     printf("leave session\n");
+                    if (leaveSession(sd) == true) {
+                        
+                    } else {
+
+                    }
                 }
                 else if (strcmp(type, "NEW_SESS") == 0)
                 {
