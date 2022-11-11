@@ -46,8 +46,44 @@ int findClientIndexFromSockfd(int sockfd)
     return -1;
 }
 
+void printAllClients()
+{
+    printf("Active Clients:\n");
+    for (int i = 0; i < MAX_CLIENTS; i++)
+    {
+        if (clients[i].sockfd != -1)
+        {
+            printf("- index: %d | id: %s | password: %s | sockfd: %d\n", i, clients[i].id, clients[i].password, clients[i].sockfd);
+        }
+    }
+    printf("\n");
+}
+
+void printAllSessions()
+{
+    printf("Active Sessions:\n");
+    for (int i = 0; i < MAX_SESSIONS; i++)
+    {
+        if (strlen(sessions[i].id) != 0)
+        {
+            printf("- index: %d | id: %s \n", i, sessions[i].id);
+            printf("- client indexes:\n");
+            for (int j = 0; j < MAX_CLIENTS_PER_SESSION; j++)
+            {
+                if (sessions[i].clientIndexes[j] != -1)
+                {
+                    printf("-- %d", sessions[i].clientIndexes[j]);
+                }
+            }
+        }
+    }
+    printf("\n");
+}
+
 bool createClient(int sockfd, char *id, char *password)
 {
+    // printf("in createClient - id: %s, password: %s\n", id, password);
+
     for (int i = 0; i < MAX_CLIENTS; i++)
     {
         if (clients[i].sockfd == -1)
@@ -56,6 +92,7 @@ bool createClient(int sockfd, char *id, char *password)
             clients[i].sockfd = sockfd;
             strcpy(clients[i].password, password);
             strcpy(clients[i].id, id);
+            // printf("%s %s\n", clients[i].id, clients[i].password);
             return true;
         }
     }
@@ -272,6 +309,7 @@ int main(int argc, char *argv[])
 
     while (1)
     {
+        printf(">>>>>>>>>>>>>>>>>>>\n");
         int sd;
         int max_sd;
 
@@ -366,21 +404,43 @@ int main(int argc, char *argv[])
                     char *source = strtok(NULL, ":");
                     char *data = strtok(NULL, ":");
 
-                    if (strcmp(type, "JOIN") == 0) {
+                    printf("type: %s , size: %s , source: %s , data: %s\n", type, size, source, data);
+
+                    if (strcmp(type, "LOGIN") == 0)
+                    {
+                        printf("login\n");
+                        createClient(sd, source, data);
+                    }
+                    else if (strcmp(type, "JOIN") == 0)
+                    {
                         printf("join session\n");
                     }
-                    else if (strcmp(type, "LEAVE_SESS") == 0) {
-                       printf("leave session\n");
+                    else if (strcmp(type, "LEAVE_SESS") == 0)
+                    {
+                        printf("leave session\n");
                     }
-                    else if (strcmp(type, "NEW_SESS") == 0) {
-                       printf("new session\n");
+                    else if (strcmp(type, "NEW_SESS") == 0)
+                    {
+                        printf("new session\n");
                     }
-                    else if (strcmp(type, "QUERY") == 0) {
-                       printf("query\n");
+                    else if (strcmp(type, "QUERY") == 0)
+                    {
+                        printf("query\n");
+                    }
+                    else if (strcmp(type, "EXIT") == 0)
+                    {
+                        printf("client exit\n");
+                        removeClient(sd);
                     }
                 }
             }
         }
+
+        // print all sessions and clients
+        printf("\n");
+        printAllClients();
+        printAllSessions();
+        strcpy(buffer, "");
     }
 
     exit(0);

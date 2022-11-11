@@ -86,6 +86,8 @@ void login(char *password, char *server_ip, char *server_port)
     {
         perror("send");
     }
+
+    // wait for login_ack
 }
 
 void logout()
