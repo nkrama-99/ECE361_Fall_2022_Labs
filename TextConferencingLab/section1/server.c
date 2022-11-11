@@ -352,14 +352,6 @@ int main(int argc, char *argv[])
 
             printf("> New connection, socket fd is %d , ip is : %s , port : %d\n", new_socket, inet_ntoa(address.sin_addr), ntohs(address.sin_port));
 
-            char *message = "Login successful!";
-            if (send(new_socket, message, strlen(message), 0) != strlen(message))
-            {
-                perror("send");
-            }
-
-            // printf("> Welcome message sent successfully\n");
-
             // add new socket to array of sockets
             for (int i = 0; i < MAX_CLIENTS; i++)
             {

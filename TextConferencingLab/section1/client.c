@@ -75,15 +75,6 @@ void login(char *password, char *server_ip, char *server_port)
         printf("connected to the server, attempting to log in\n");
     }
 
-    // this recv is for master socket handshake, not removing it for now
-    if ((numbytes = recvfrom(sockfd, buf, MAXBUFLEN - 1, 0,
-                             (struct sockaddr *)&servaddr, &addr_len)) == -1)
-    {
-        perror("recvfrom");
-        exit(1);
-    }
-    strcpy(buf, "");
-
     if (send(sockfd, message, MAXBUFLEN, 0) == -1)
     {
         perror("send");
