@@ -206,6 +206,10 @@ bool message(int sockfd, char *message)
         return false;
     }
 
+    char body[MAXBUFLEN] = "";
+    sprintf(body, "%s:%s:%s", "MESSAGE", clients[clientIndex].id, message);
+    printf("sending to clients: %s\n", body);
+    
     // send message to everyone in the session
     for (int i = 0; i < MAX_CLIENTS_PER_SESSION; i++)
     {
@@ -213,7 +217,7 @@ bool message(int sockfd, char *message)
         {
             // this is a client
             int toSockfd = clients[sessions[sessionIndex].clientIndexes[i]].sockfd;
-            if (send(toSockfd, message, MAXBUFLEN, 0) == -1)
+            if (send(toSockfd, body, MAXBUFLEN, 0) == -1)
             {
                 perror("send");
                 // return false;
@@ -415,28 +419,31 @@ int main(int argc, char *argv[])
                 else if (strcmp(type, "JOIN") == 0)
                 {
                     printf("join session\n");
-                    if (joinSession(sd, data) == true) {
-                        
-                    } else {
-
+                    if (joinSession(sd, data) == true)
+                    {
+                    }
+                    else
+                    {
                     }
                 }
                 else if (strcmp(type, "LEAVE_SESS") == 0)
                 {
                     printf("leave session\n");
-                    if (leaveSession(sd) == true) {
-                        
-                    } else {
-
+                    if (leaveSession(sd) == true)
+                    {
+                    }
+                    else
+                    {
                     }
                 }
                 else if (strcmp(type, "NEW_SESS") == 0)
                 {
                     printf("new session\n");
-                    if (createSession(data) == true) {
-                        
-                    } else {
-
+                    if (createSession(data) == true)
+                    {
+                    }
+                    else
+                    {
                     }
                 }
                 else if (strcmp(type, "QUERY") == 0)
