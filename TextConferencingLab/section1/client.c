@@ -103,7 +103,7 @@ void logout()
         perror("send");
     }
     close(sockfd);
-
+    connected = false;
     printf("logged out and disconnected from server\n");
     isLoggedIn == false;
 }
@@ -262,7 +262,7 @@ int main(int argc, char **argv)
             // should I check if connnected?
             // printf("> socket activity identified\n");
             // wait for login_ack
-            char buf[MAXBUFLEN];
+            char buf[MAXBUFLEN] = "";
 
             if ((numbytes = recvfrom(sockfd, buf, MAXBUFLEN - 1, 0,
                                      (struct sockaddr *)&servaddr, &addr_len)) == -1)
@@ -271,8 +271,17 @@ int main(int argc, char **argv)
                 exit(1);
             }
 
-            printf("received a message: %s\n", buf);
-            // memset(buf, '0', MAXBUFLEN);
+            char *cmd = strtok(buf, ":");
+            char *source = strtok(NULL, ":");
+            char *content = strtok(NULL, ":");
+
+            // printf("buf: %s\n", buf);
+            // printf("cmd:%s, source:%s, content:%s\n", cmd, source, content);
+
+            if (cmd != NULL && source != NULL && content != NULL && strcmp(cmd, "MESSAGE") == 0)
+            {
+                printf("%s - %s\n", source, content);
+            }
         }
         else
         {
