@@ -212,7 +212,7 @@ int main(int argc, char **argv)
 
             if (strcmp(cmd, "/login") == 0)
             {
-                
+
                 char *client_id = strtok(NULL, " ");
                 char *password = strtok(NULL, " ");
                 char *server_ip = strtok(NULL, " ");
@@ -222,35 +222,82 @@ int main(int argc, char **argv)
                 {
                     printf("invalid login commands\n");
                 }
-                else {
+                else
+                {
                     strcpy(set_client_id, client_id);
                     login(password, server_ip, server_port);
                 }
             }
             else if (strcmp(cmd, "/logout") == 0)
             {
-                logout();
+                if (isLoggedIn == false)
+                {
+                    printf("you are not logged in\n");
+                }
+                else
+                {
+                    logout();
+                }
             }
             else if (strcmp(cmd, "/joinsession") == 0)
             {
-                printf("you have joined the session\n");
-                char *session_id = strtok(NULL, " ");
-                joinSession(session_id);
+                if (isLoggedIn == false)
+                {
+                    printf("you are not logged in\n");
+                }
+                else
+                {
+                    char *session_id = strtok(NULL, " ");
+                    if (session_id == NULL)
+                    {
+                        printf("invalid join session commands\n");
+                    }
+                    else
+                    {
+                        joinSession(session_id);
+                    }
+                }
             }
             else if (strcmp(cmd, "/leavesession") == 0)
             {
-                printf("you have left the session\n");
-                leaveSession();
+                if (isLoggedIn == false)
+                {
+                    printf("you are not logged in\n");
+                }
+                else
+                {
+                    leaveSession();
+                }
             }
             else if (strcmp(cmd, "/createsession") == 0)
             {
-                printf("you have created a session\n");
-                char *session_id = strtok(NULL, " ");
-                createSession(session_id);
+                if (isLoggedIn == false)
+                {
+                    printf("you are not logged in\n");
+                }
+                else
+                {
+                    char *session_id = strtok(NULL, " ");
+                    if (session_id == NULL)
+                    {
+                        printf("invalid create session commands\n");
+                    }
+                    else
+                    {
+                        createSession(session_id);
+                    }
+                }
             }
             else if (strcmp(cmd, "/list") == 0)
             {
-                query();
+                if (isLoggedIn == false)
+                {
+                    printf("you are not logged in\n");
+                }
+                else
+                {
+                    query();
+                }
             }
             else if (strcmp(cmd, "/quit") == 0)
             {
