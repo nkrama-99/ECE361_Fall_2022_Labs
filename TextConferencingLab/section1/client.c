@@ -25,7 +25,8 @@ bool isLoggedIn = false;
 
 void login(char *password, char *server_ip, char *server_port)
 {
-    if (isLoggedIn == true) {
+    if (isLoggedIn == true)
+    {
         printf("you are already logged in\n");
         return;
     }
@@ -203,8 +204,6 @@ int main(int argc, char **argv)
 
         if (FD_ISSET(STDIN, &read_fds))
         {
-            // printf("> io activity identified\n");
-
             char *cmd;
             char buf[100];
             fgets(buf, 100, stdin);
@@ -213,13 +212,20 @@ int main(int argc, char **argv)
 
             if (strcmp(cmd, "/login") == 0)
             {
+                
                 char *client_id = strtok(NULL, " ");
-                strcpy(set_client_id, client_id);
                 char *password = strtok(NULL, " ");
                 char *server_ip = strtok(NULL, " ");
                 char *server_port = strtok(NULL, " ");
 
-                login(password, server_ip, server_port);
+                if (password == NULL || server_ip == NULL || server_port == NULL)
+                {
+                    printf("invalid login commands\n");
+                }
+                else {
+                    strcpy(set_client_id, client_id);
+                    login(password, server_ip, server_port);
+                }
             }
             else if (strcmp(cmd, "/logout") == 0)
             {
@@ -259,9 +265,6 @@ int main(int argc, char **argv)
         }
         else if (FD_ISSET(sockfd, &read_fds))
         {
-            // should I check if connnected?
-            // printf("> socket activity identified\n");
-            // wait for login_ack
             char buf[MAXBUFLEN] = "";
 
             if ((numbytes = recvfrom(sockfd, buf, MAXBUFLEN - 1, 0,
@@ -274,9 +277,6 @@ int main(int argc, char **argv)
             char *cmd = strtok(buf, ":");
             char *source = strtok(NULL, ":");
             char *content = strtok(NULL, ":");
-
-            // printf("buf: %s\n", buf);
-            // printf("cmd:%s, source:%s, content:%s\n", cmd, source, content);
 
             if (cmd != NULL && source != NULL && content != NULL && strcmp(cmd, "MESSAGE") == 0)
             {
