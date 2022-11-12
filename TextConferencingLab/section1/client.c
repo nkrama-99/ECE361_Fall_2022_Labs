@@ -14,7 +14,7 @@
 #define MAXBUFLEN 100
 #define STDIN 0
 
-bool insession = false; // whether user is in a session
+bool inSession = false; // whether user is in a session
 int sockfd = 0;
 struct sockaddr_in servaddr;
 socklen_t addr_len;
@@ -82,14 +82,21 @@ void login(char *password, char *server_ip, char *server_port)
         exit(1);
     }
 
-    // printf("response: %s\n", buf);
-    if (strcmp(buf, "LO_ACK") == 0)
+    char *reply_type = strtok(buf, ":");
+    char *reply_size = strtok(NULL, ":");
+    char *reply_source = strtok(NULL, ":");
+    char *reply_data = strtok(NULL, ":");
+
+    if (strcmp(reply_type, "LO_ACK") == 0)
     {
         printf("logged in successfully\n");
         connected = true;
+        isLoggedIn = true;
     }
-
-    isLoggedIn = true;
+    else if (strcmp(reply_type, "LO_NAK") == 0)
+    {
+        printf("login unsuccessful");
+    }
 }
 
 void logout()
@@ -111,6 +118,7 @@ void logout()
 
 void joinSession(char *session_id)
 {
+    char buf[MAXBUFLEN];
     char message[100] = "";
     char type[] = "JOIN";
     char size[64];
@@ -120,6 +128,30 @@ void joinSession(char *session_id)
     if (send(sockfd, message, MAXBUFLEN, 0) == -1)
     {
         perror("send");
+    }
+
+    // wait for login_ack
+    if ((numbytes = recvfrom(sockfd, buf, MAXBUFLEN - 1, 0,
+                             (struct sockaddr *)&servaddr, &addr_len)) == -1)
+    {
+        perror("recvfrom");
+        exit(1);
+    }
+
+    char *reply_type = strtok(buf, ":");
+    char *reply_size = strtok(NULL, ":");
+    char *source = strtok(NULL, ":");
+    char *data = strtok(NULL, ":");
+
+    if (strcmp(reply_type, "JN_ACK") == 0)
+    {
+        printf("joined session successfully\n");
+        connected = true;
+        isLoggedIn = true;
+    }
+    else if (strcmp(reply_type, "JN_NAK") == 0)
+    {
+        printf("%s\n", data);
     }
 }
 
@@ -138,6 +170,7 @@ void leaveSession()
 
 void createSession(char *session_id)
 {
+    char buf[MAXBUFLEN];
     char message[100] = "";
     char type[] = "NEW_SESS";
     char size[64];
@@ -148,6 +181,25 @@ void createSession(char *session_id)
     if (send(sockfd, message, MAXBUFLEN, 0) == -1)
     {
         perror("send");
+    }
+
+    if ((numbytes = recvfrom(sockfd, buf, MAXBUFLEN - 1, 0,
+                             (struct sockaddr *)&servaddr, &addr_len)) == -1)
+    {
+        perror("recvfrom");
+        exit(1);
+    }
+
+    char *reply_type = strtok(buf, ":");
+    char *reply_size = strtok(NULL, ":");
+    char *source = strtok(NULL, ":");
+    char *data = strtok(NULL, ":");
+
+    if (strcmp(reply_type, "NS_ACK") == 0)
+    {
+        printf("created session successfully\n");
+        connected = true;
+        isLoggedIn = true;
     }
 }
 

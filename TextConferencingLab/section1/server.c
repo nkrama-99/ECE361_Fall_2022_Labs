@@ -83,8 +83,6 @@ void printAllSessions()
 
 bool createClient(int sockfd, char *id, char *password)
 {
-    // printf("in createClient - id: %s, password: %s\n", id, password);
-
     for (int i = 0; i < MAX_CLIENTS; i++)
     {
         if (clients[i].sockfd == -1)
@@ -209,7 +207,7 @@ bool message(int sockfd, char *message)
     char body[MAXBUFLEN] = "";
     sprintf(body, "%s:%s:%s", "MESSAGE", clients[clientIndex].id, message);
     printf("sending to clients: %s\n", body);
-    
+
     // send message to everyone in the session
     for (int i = 0; i < MAX_CLIENTS_PER_SESSION; i++)
     {
@@ -400,8 +398,7 @@ int main(int argc, char *argv[])
                     printf("login\n");
                     if (createClient(sd, source, data) == true)
                     {
-                        printf("login success\n");
-                        char *message = "LO_ACK";
+                        char *message = "LO_ACK:0:server:";
                         if (send(sd, message, MAXBUFLEN, 0) == -1)
                         {
                             perror("send");
@@ -409,7 +406,7 @@ int main(int argc, char *argv[])
                     }
                     else
                     {
-                        char *message = "LO_NAK";
+                        char *message = "LO_NAK:0:server:";
                         if (send(sd, message, MAXBUFLEN, 0) == -1)
                         {
                             perror("send");
@@ -419,21 +416,45 @@ int main(int argc, char *argv[])
                 else if (strcmp(type, "JOIN") == 0)
                 {
                     printf("join session\n");
-                    if (joinSession(sd, data) == true)
+                    if (joinSession(sd, data) == 0)
                     {
+                        char *message[100];
+                        sprintf(message, "%s:%s:%s:%s", "JN_ACK", "0", "server", "");
+                        if (send(sd, message, MAXBUFLEN, 0) == -1)
+                        {
+                            perror("send");
+                        }
                     }
-                    else
+                    else if (joinSession(sd, data) == 1)
                     {
+                        char message[100];
+                        char size[64];
+                        sprintf(size, "%d", strlen(data) + strlen(" - no space for client"));
+
+                        sprintf(message, "%s:%s:%s:%s%s", "JN_NAK", size, "server", data, " - no space for client");
+                        if (send(sd, message, MAXBUFLEN, 0) == -1)
+                        {
+                            perror("send");
+                        }
+                    }
+                    else if (joinSession(sd, data) == 2)
+                    {
+                        char message[100];
+                        char size[64];
+                        sprintf(size, "%d", strlen(data) + strlen(" - session id not found"));
+
+                        sprintf(message, "%s:%s:%s:%s%s", "JN_NAK", size, "server", data, " - session id not found");
+                        if (send(sd, message, MAXBUFLEN, 0) == -1)
+                        {
+                            perror("send");
+                        }
                     }
                 }
                 else if (strcmp(type, "LEAVE_SESS") == 0)
                 {
-                    printf("leave session\n");
                     if (leaveSession(sd) == true)
                     {
-                    }
-                    else
-                    {
+                        printf("leave session\n");
                     }
                 }
                 else if (strcmp(type, "NEW_SESS") == 0)
@@ -441,9 +462,11 @@ int main(int argc, char *argv[])
                     printf("new session\n");
                     if (createSession(data) == true)
                     {
-                    }
-                    else
-                    {
+                        char *message = "NS_ACK:0:server:";
+                        if (send(sd, message, MAXBUFLEN, 0) == -1)
+                        {
+                            perror("send");
+                        }
                     }
                 }
                 else if (strcmp(type, "QUERY") == 0)
