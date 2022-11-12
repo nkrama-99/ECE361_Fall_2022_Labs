@@ -12,6 +12,7 @@
 #include <netdb.h>
 
 #define MAXBUFLEN 100
+#define STDIN 0
 
 // if ((numbytes = recvfrom(sockfd, buf, MAXBUFLEN - 1, 0,
 //                          (struct sockaddr *)&servaddr, &addr_len)) == -1)
@@ -29,11 +30,12 @@
 // }
 
 bool insession = false; // whether user is in a session
-int sockfd;
+int sockfd = 0;
 struct sockaddr_in servaddr;
 socklen_t addr_len;
 int numbytes;
 char set_client_id[100];
+bool connected = false;
 
 void login(char *password, char *server_ip, char *server_port)
 {
@@ -92,6 +94,7 @@ void login(char *password, char *server_ip, char *server_port)
     if (strcmp(buf, "LO_ACK") == 0)
     {
         printf("logged in successfully\n");
+        connected = true;
     }
 }
 
@@ -166,64 +169,123 @@ void query()
     }
 }
 
+void sendMessage(char *messageContent)
+{
+    char message[100] = "";
+    char type[] = "MESSAGE";
+    char size[64];
+    sprintf(size, "%d", strlen(messageContent));
+
+    sprintf(message, "%s:%s:%s:%s", type, size, set_client_id, messageContent);
+
+    printf("to server: %s\n", message);
+
+    if (send(sockfd, message, MAXBUFLEN, 0) == -1)
+    {
+        perror("send");
+    }
+}
+
 int main(int argc, char **argv)
 {
     bool isClientOn = true;
+    fd_set read_fds;
 
     while (isClientOn == true)
     {
-        char *cmd;
-        char buf[100];
-        fgets(buf, 100, stdin);
-        buf[strcspn(buf, "\n")] = 0;
-        cmd = strtok(buf, " ");
+        // set file descriptors to socket and io
+        FD_ZERO(&read_fds);
+        FD_SET(STDIN, &read_fds);
 
-        if (strcmp(cmd, "/login") == 0)
+        if (connected == true)
         {
-            char *client_id = strtok(NULL, " ");
-            strcpy(set_client_id, client_id);
-            char *password = strtok(NULL, " ");
-            char *server_ip = strtok(NULL, " ");
-            char *server_port = strtok(NULL, " ");
+            FD_SET(sockfd, &read_fds);
+        }
 
-            login(password, server_ip, server_port);
-        }
-        else if (strcmp(cmd, "/logout") == 0)
+        if (select(sockfd + 1, &read_fds, NULL, NULL, NULL) == -1)
         {
-            logout();
+            perror("select");
         }
-        else if (strcmp(cmd, "/joinsession") == 0)
+
+        if (FD_ISSET(STDIN, &read_fds))
         {
-            printf("you have joined the session\n");
-            char *session_id = strtok(NULL, " ");
-            joinSession(session_id);
+            // printf("> io activity identified\n");
+
+            char *cmd;
+            char buf[100];
+            fgets(buf, 100, stdin);
+            buf[strcspn(buf, "\n")] = 0;
+            cmd = strtok(buf, " ");
+
+            if (strcmp(cmd, "/login") == 0)
+            {
+                char *client_id = strtok(NULL, " ");
+                strcpy(set_client_id, client_id);
+                char *password = strtok(NULL, " ");
+                char *server_ip = strtok(NULL, " ");
+                char *server_port = strtok(NULL, " ");
+
+                login(password, server_ip, server_port);
+            }
+            else if (strcmp(cmd, "/logout") == 0)
+            {
+                logout();
+            }
+            else if (strcmp(cmd, "/joinsession") == 0)
+            {
+                printf("you have joined the session\n");
+                char *session_id = strtok(NULL, " ");
+                joinSession(session_id);
+            }
+            else if (strcmp(cmd, "/leavesession") == 0)
+            {
+                printf("you have left the session\n");
+                leaveSession();
+            }
+            else if (strcmp(cmd, "/createsession") == 0)
+            {
+                printf("you have created a session\n");
+                char *session_id = strtok(NULL, " ");
+                createSession(session_id);
+            }
+            else if (strcmp(cmd, "/list") == 0)
+            {
+                query();
+            }
+            else if (strcmp(cmd, "/quit") == 0)
+            {
+                printf("terminating session\n");
+                break;
+            }
+            else
+            {
+                sendMessage(buf);
+            }
+            memset(buf, '0', 100);
         }
-        else if (strcmp(cmd, "/leavesession") == 0)
+        else if (FD_ISSET(sockfd, &read_fds))
         {
-            printf("you have left the session\n");
-            leaveSession();
-        }
-        else if (strcmp(cmd, "/createsession") == 0)
-        {
-            printf("you have created a session\n");
-            char *session_id = strtok(NULL, " ");
-            createSession(session_id);
-        }
-        else if (strcmp(cmd, "/list") == 0)
-        {
-            query();
-        }
-        else if (strcmp(cmd, "/quit") == 0)
-        {
-            printf("terminating session\n");
-            break;
+            // should I check if connnected?
+            // printf("> socket activity identified\n");
+            // wait for login_ack
+            char buf[MAXBUFLEN];
+
+            if ((numbytes = recvfrom(sockfd, buf, MAXBUFLEN - 1, 0,
+                                     (struct sockaddr *)&servaddr, &addr_len)) == -1)
+            {
+                perror("recvfrom");
+                exit(1);
+            }
+
+            printf("received a message: %s\n", buf);
+            // memset(buf, '0', MAXBUFLEN);
         }
         else
         {
-            printf("invalid command, try something else\n");
+            printf("> shouldn't be coming here\n");
         }
-        memset(buf, '0', 100);
     }
+
     fprintf(stdout, "You have quit successfully.\n");
     return 0;
 }

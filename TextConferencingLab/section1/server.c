@@ -216,7 +216,7 @@ bool message(int sockfd, char *message)
             if (send(toSockfd, message, MAXBUFLEN, 0) == -1)
             {
                 perror("send");
-                return false;
+                // return false;
             }
         }
     }
@@ -450,6 +450,11 @@ int main(int argc, char *argv[])
                     removeClient(sd);
                     close(sd);
                     client_socket[i] = 0;
+                }
+                else if (strcmp(type, "MESSAGE") == 0)
+                {
+                    printf("client message\n");
+                    message(sd, data);
                 }
             }
         }
