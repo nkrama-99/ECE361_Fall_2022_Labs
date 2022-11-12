@@ -19,7 +19,7 @@ int sockfd = 0;
 struct sockaddr_in servaddr;
 socklen_t addr_len;
 int numbytes;
-char set_client_id[100];
+char set_client_id[MAXBUFLEN];
 bool connected = false;
 bool isLoggedIn = false;
 
@@ -32,9 +32,9 @@ void login(char *password, char *server_ip, char *server_port)
     }
 
     char buf[MAXBUFLEN];
-    char message[100] = "";
+    char message[MAXBUFLEN] = "";
     char type[] = "LOGIN";
-    char size[64];
+    char size[MAXBUFLEN];
     sprintf(size, "%d", strlen(password));
 
     sprintf(message, "%s:%s:%s:%s", type, size, set_client_id, password);
@@ -101,7 +101,7 @@ void login(char *password, char *server_ip, char *server_port)
 
 void logout()
 {
-    char message[100] = "";
+    char message[MAXBUFLEN] = "";
     char type[] = "EXIT";
 
     sprintf(message, "%s:%s:%s:%s", type, "0", set_client_id, "");
@@ -125,9 +125,9 @@ void joinSession(char *session_id)
     }
 
     char buf[MAXBUFLEN];
-    char message[100] = "";
+    char message[MAXBUFLEN] = "";
     char type[] = "JOIN";
-    char size[64];
+    char size[MAXBUFLEN];
     sprintf(size, "%d", strlen(session_id));
     sprintf(message, "%s:%s:%s:%s", type, size, set_client_id, session_id);
 
@@ -170,7 +170,7 @@ void leaveSession()
         return;
     }
 
-    char message[100] = "";
+    char message[MAXBUFLEN] = "";
     char type[] = "LEAVE_SESS";
 
     sprintf(message, "%s:%s:%s:%s", type, "0", set_client_id, "");
@@ -186,9 +186,9 @@ void leaveSession()
 void createSession(char *session_id)
 {
     char buf[MAXBUFLEN];
-    char message[100] = "";
+    char message[MAXBUFLEN] = "";
     char type[] = "NEW_SESS";
-    char size[64];
+    char size[MAXBUFLEN];
     sprintf(size, "%d", strlen(session_id));
 
     sprintf(message, "%s:%s:%s:%s", type, size, set_client_id, session_id);
@@ -221,7 +221,7 @@ void createSession(char *session_id)
 void query()
 {
     char buf[MAXBUFLEN];
-    char message[100] = "";
+    char message[MAXBUFLEN] = "";
     char type[] = "QUERY";
 
     sprintf(message, "%s:%s:%s:%s", type, "0", set_client_id, "");
@@ -258,9 +258,9 @@ void query()
 
 void sendMessage(char *messageContent)
 {
-    char message[100] = "";
+    char message[MAXBUFLEN] = "";
     char type[] = "MESSAGE";
-    char size[64];
+    char size[MAXBUFLEN];
     sprintf(size, "%d", strlen(messageContent));
 
     sprintf(message, "%s:%s:%s:%s", type, size, set_client_id, messageContent);
@@ -297,8 +297,8 @@ int main(int argc, char **argv)
         if (FD_ISSET(STDIN, &read_fds))
         {
             char *cmd;
-            char buf[100];
-            fgets(buf, 100, stdin);
+            char buf[MAXBUFLEN];
+            fgets(buf, MAXBUFLEN, stdin);
             buf[strcspn(buf, "\n")] = 0;
             cmd = strtok(buf, " ");
 
@@ -400,7 +400,7 @@ int main(int argc, char **argv)
             {
                 sendMessage(buf);
             }
-            memset(buf, '0', 100);
+            memset(buf, '0', MAXBUFLEN);
         }
         else if (FD_ISSET(sockfd, &read_fds))
         {
