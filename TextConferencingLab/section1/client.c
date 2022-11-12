@@ -14,21 +14,6 @@
 #define MAXBUFLEN 100
 #define STDIN 0
 
-// if ((numbytes = recvfrom(sockfd, buf, MAXBUFLEN - 1, 0,
-//                          (struct sockaddr *)&servaddr, &addr_len)) == -1)
-// {
-//     perror("recvfrom");
-//     exit(1);
-// }
-
-// printf("Received message from server: ");
-// printf(buf);
-
-// if (send(sockfd, "Hi Rama! Nice to meet you.\n", MAXBUFLEN, 0) == -1)
-// {
-//     perror("send");
-// }
-
 bool insession = false; // whether user is in a session
 int sockfd = 0;
 struct sockaddr_in servaddr;
@@ -36,9 +21,15 @@ socklen_t addr_len;
 int numbytes;
 char set_client_id[100];
 bool connected = false;
+bool isLoggedIn = false;
 
 void login(char *password, char *server_ip, char *server_port)
 {
+    if (isLoggedIn == true) {
+        printf("you are already logged in\n");
+        return;
+    }
+
     char buf[MAXBUFLEN];
     char message[100] = "";
     char type[] = "LOGIN";
@@ -96,6 +87,8 @@ void login(char *password, char *server_ip, char *server_port)
         printf("logged in successfully\n");
         connected = true;
     }
+
+    isLoggedIn = true;
 }
 
 void logout()
@@ -112,6 +105,7 @@ void logout()
     close(sockfd);
 
     printf("logged out and disconnected from server\n");
+    isLoggedIn == false;
 }
 
 void joinSession(char *session_id)
