@@ -118,6 +118,12 @@ void logout()
 
 void joinSession(char *session_id)
 {
+    if (inSession == true)
+    {
+        printf("you are already in a session\n");
+        return;
+    }
+
     char buf[MAXBUFLEN];
     char message[100] = "";
     char type[] = "JOIN";
@@ -148,6 +154,7 @@ void joinSession(char *session_id)
         printf("joined session successfully\n");
         connected = true;
         isLoggedIn = true;
+        inSession = true;
     }
     else if (strcmp(reply_type, "JN_NAK") == 0)
     {
@@ -157,6 +164,12 @@ void joinSession(char *session_id)
 
 void leaveSession()
 {
+    if (inSession == false)
+    {
+        printf("you are not in a session\n");
+        return;
+    }
+
     char message[100] = "";
     char type[] = "LEAVE_SESS";
 
@@ -166,6 +179,8 @@ void leaveSession()
     {
         perror("send");
     }
+
+    inSession = false;
 }
 
 void createSession(char *session_id)
@@ -205,6 +220,7 @@ void createSession(char *session_id)
 
 void query()
 {
+    char buf[MAXBUFLEN];
     char message[100] = "";
     char type[] = "QUERY";
 
@@ -213,6 +229,30 @@ void query()
     if (send(sockfd, message, MAXBUFLEN, 0) == -1)
     {
         perror("send");
+    }
+
+    if ((numbytes = recvfrom(sockfd, buf, MAXBUFLEN - 1, 0,
+                             (struct sockaddr *)&servaddr, &addr_len)) == -1)
+    {
+        perror("recvfrom");
+        exit(1);
+    }
+
+    char *reply_type = strtok(buf, ":");
+    char *reply_size = strtok(NULL, ":");
+    char *source = strtok(NULL, ":");
+    char *data = strtok(NULL, ":");
+    char *clients = strtok(data, ";");
+    char *sessions = strtok(NULL, ";");
+
+    if (strcmp(reply_type, "QU_ACK") == 0)
+    {
+        printf("Here are all the clients connected to the server:\n");
+        printf("%s\n", clients);
+        printf("Here are all the sessions hosted by the server:\n");
+        printf("%s\n", sessions);
+        connected = true;
+        isLoggedIn = true;
     }
 }
 

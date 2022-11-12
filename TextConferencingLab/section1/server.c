@@ -46,6 +46,34 @@ int findClientIndexFromSockfd(int sockfd)
     return -1;
 }
 
+char *getAllClients()
+{
+    char buf[MAXBUFLEN];
+
+    for (int i = 0; i < MAX_CLIENTS; i++)
+    {
+        if (clients[i].sockfd != -1)
+        {
+            strcpy(buf, clients[i].id);
+        }
+    }
+    return (buf);
+}
+
+char *getAllSessions()
+{
+    char buf[MAXBUFLEN];
+
+    for (int i = 0; i < MAX_SESSIONS; i++)
+    {
+        if (strlen(sessions[i].id) != 0)
+        {
+            strcpy(buf, sessions[i].id);
+        }
+    }
+    return (buf);
+}
+
 void printAllClients()
 {
     printf("Active Clients:\n");
@@ -471,7 +499,20 @@ int main(int argc, char *argv[])
                 }
                 else if (strcmp(type, "QUERY") == 0)
                 {
-                    printf("query\n");
+                    char clientList[MAXBUFLEN];
+                    sprintf(clientList, "%s ", getAllClients());
+                    char sessionList[MAXBUFLEN];
+                    sprintf(sessionList, "%s ", getAllSessions());
+
+                    char message[MAXBUFLEN];
+                    char size[MAXBUFLEN];
+                    sprintf(size, "%d", strlen(clientList));
+
+                    sprintf(message, "%s:%s:%s:%s;%s", "QU_ACK", size, "server", clientList, sessionList);
+                    if (send(sd, message, MAXBUFLEN, 0) == -1)
+                    {
+                        perror("send");
+                    }
                 }
                 else if (strcmp(type, "EXIT") == 0)
                 {
