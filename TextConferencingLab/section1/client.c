@@ -105,7 +105,7 @@ void logout()
     close(sockfd);
     connected = false;
     printf("logged out and disconnected from server\n");
-    isLoggedIn == false;
+    isLoggedIn = false;
 }
 
 void joinSession(char *session_id)
