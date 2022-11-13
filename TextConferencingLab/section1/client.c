@@ -101,6 +101,12 @@ void login(char *password, char *server_ip, char *server_port)
 
 void logout()
 {
+    if (inSession == true)
+    {
+        printf("please leave session first\n");
+        return;
+    }
+
     char message[MAXBUFLEN] = "";
     char type[] = "EXIT";
 
@@ -310,7 +316,7 @@ int main(int argc, char **argv)
                 char *server_ip = strtok(NULL, " ");
                 char *server_port = strtok(NULL, " ");
 
-                if (password == NULL || server_ip == NULL || server_port == NULL)
+                if (client_id == NULL || password == NULL || server_ip == NULL || server_port == NULL)
                 {
                     printf("invalid login commands\n");
                 }
@@ -393,12 +399,30 @@ int main(int argc, char **argv)
             }
             else if (strcmp(cmd, "/quit") == 0)
             {
-                printf("terminating session\n");
-                break;
+                if (inSession == true)
+                {
+                    printf("please leave session first\n");
+                }
+                else if (connected == true)
+                {
+                    printf("please logout first\n");
+                }
+                else
+                {
+                    printf("terminating session\n");
+                    break;
+                }
             }
             else
             {
-                sendMessage(buf);
+                if (inSession == true)
+                {
+                    sendMessage(buf);
+                }
+                else
+                {
+                    printf("please join a session first\n");
+                }
             }
             memset(buf, '0', MAXBUFLEN);
         }
