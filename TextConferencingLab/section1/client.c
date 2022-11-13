@@ -11,7 +11,7 @@
 #include <arpa/inet.h>
 #include <netdb.h>
 
-#define MAXBUFLEN 100
+#define MAXBUFLEN 1000
 #define STDIN 0
 
 bool inSession = false; // whether user is in a session

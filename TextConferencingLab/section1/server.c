@@ -10,7 +10,7 @@
 #include <netinet/in.h>
 #include <sys/time.h> //FD_SET, FD_ISSET, FD_ZERO macros
 
-#define MAXBUFLEN 100
+#define MAXBUFLEN 1000
 #define PORT 3000
 #define MAX_CLIENTS 30
 #define MAX_SESSIONS 5
@@ -239,7 +239,7 @@ bool message(int sockfd, char *message)
     // send message to everyone in the session
     for (int i = 0; i < MAX_CLIENTS_PER_SESSION; i++)
     {
-        if (sessions[sessionIndex].clientIndexes[i] != -1)
+        if (sessions[sessionIndex].clientIndexes[i] != -1 && sessions[sessionIndex].clientIndexes[i] != sockfd)
         {
             // this is a client
             int toSockfd = clients[sessions[sessionIndex].clientIndexes[i]].sockfd;
@@ -286,7 +286,7 @@ int main(int argc, char *argv[])
     int master_socket, addrlen, new_socket, client_socket[MAX_CLIENTS], activity, valread;
     struct sockaddr_in address;
 
-    char buffer[1025]; // data buffer of 1K
+    char buffer[MAXBUFLEN]; // data buffer of 1K
 
     // socket descriptor set
     fd_set readfds;
@@ -403,7 +403,7 @@ int main(int argc, char *argv[])
 
             if (FD_ISSET(sd, &readfds))
             {
-                if ((valread = read(sd, buffer, 1024)) == -1)
+                if ((valread = read(sd, buffer, MAXBUFLEN)) == -1)
                 {
                     printf("errno:%d\n", errno);
                     perror("read");
