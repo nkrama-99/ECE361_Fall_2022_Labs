@@ -15,6 +15,7 @@
 #define MAX_CLIENTS 30
 #define MAX_SESSIONS 5
 #define MAX_CLIENTS_PER_SESSION 5
+#define USERS_COUNT 7
 
 struct Client
 {
@@ -28,6 +29,24 @@ struct Session
     char id[100];
     int clientIndexes[MAX_CLIENTS_PER_SESSION];
 };
+
+char users[USERS_COUNT][20] = {
+    "rama",
+    "gaurav",
+    "snehal",
+    "lakmal",
+    "ani",
+    "sowrov",
+    "sam"};
+
+char passwords[USERS_COUNT][20] = {
+    "rama",
+    "gaurav",
+    "snehal",
+    "lakmal",
+    "ani",
+    "sowrov",
+    "sam"};
 
 struct Session sessions[MAX_SESSIONS];
 struct Client clients[MAX_CLIENTS];
@@ -121,6 +140,23 @@ bool createClient(int sockfd, char *id, char *password)
             strcpy(clients[i].id, id);
             // printf("%s %s\n", clients[i].id, clients[i].password);
             return true;
+        }
+    }
+
+    return false;
+}
+
+bool authenticateUser(char *userId, char *password)
+{
+    for (int i = 0; i < USERS_COUNT; i++)
+    {
+        if (strcmp(users[i], userId) == 0)
+        {
+            if (strcmp(passwords[i], password) == 0)
+            {
+                return true;
+            }
+            return false;
         }
     }
 
@@ -424,8 +460,21 @@ int main(int argc, char *argv[])
                 if (strcmp(type, "LOGIN") == 0)
                 {
                     printf("login\n");
-                    if (createClient(sd, source, data) == true)
+                    bool loginSuccess = false;
+
+                    if (authenticateUser(source, data) == true)
                     {
+                        printf("authenticate success\n");
+                        loginSuccess = createClient(sd, source, data);
+                    }
+                    else
+                    {
+                        printf("authenticate failed\n");
+                    }
+
+                    if (loginSuccess == true)
+                    {
+                        printf("client creation success\n");
                         char *message = "LO_ACK:0:server:";
                         if (send(sd, message, MAXBUFLEN, 0) == -1)
                         {
@@ -434,6 +483,7 @@ int main(int argc, char *argv[])
                     }
                     else
                     {
+                        printf("client creation failed\n");
                         char *message = "LO_NAK:0:server:";
                         if (send(sd, message, MAXBUFLEN, 0) == -1)
                         {
