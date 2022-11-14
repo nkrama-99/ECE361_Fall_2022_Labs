@@ -257,7 +257,7 @@ bool leaveSession(int sockfd)
                 bool clientsInSession = false;
                 for (int k = 0; k < MAX_CLIENTS_PER_SESSION; k++)
                 {
-                    if (sessions[i].clientIndexes[j] != -1)
+                    if (sessions[i].clientIndexes[k] != -1)
                     {
                         clientsInSession = true;
                     }
