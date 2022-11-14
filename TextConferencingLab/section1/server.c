@@ -189,6 +189,14 @@ bool createSession(char *sessionId)
 {
     for (int i = 0; i < MAX_SESSIONS; i++)
     {
+        if (strcmp(sessions[i].id, sessionId) == 0)
+        {
+            return false;
+        }
+    }
+
+    for (int i = 0; i < MAX_SESSIONS; i++)
+    {
         if (strlen(sessions[i].id) == 0)
         {
             // this space is available in sessions
@@ -565,6 +573,14 @@ int main(int argc, char *argv[])
                                 {
                                     perror("send");
                                 }
+                            }
+                        }
+                        else
+                        {
+                            char *message = "NS_NAK:0:server:";
+                            if (send(sd, message, MAXBUFLEN, 0) == -1)
+                            {
+                                perror("send");
                             }
                         }
                     }

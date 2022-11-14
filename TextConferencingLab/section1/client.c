@@ -223,6 +223,10 @@ void createSession(char *session_id)
         isLoggedIn = true;
         inSession = true;
     }
+    else if (strcmp(reply_type, "NS_NAK") == 0)
+    {
+        printf("session creation failed\n");
+    }
 }
 
 void query()
