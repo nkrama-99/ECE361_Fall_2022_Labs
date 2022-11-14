@@ -462,7 +462,7 @@ int main(int argc, char *argv[])
                     {
                         // null check
                     }
-                    else if(strcmp(type, "LOGIN") == 0)
+                    else if (strcmp(type, "LOGIN") == 0)
                     {
                         printf("login\n");
                         bool loginSuccess = false;
@@ -546,9 +546,12 @@ int main(int argc, char *argv[])
                         if (createSession(data) == true)
                         {
                             char *message = "NS_ACK:0:server:";
-                            if (send(sd, message, MAXBUFLEN, 0) == -1)
+                            if (joinSession(sd, data) == 0)
                             {
-                                perror("send");
+                                if (send(sd, message, MAXBUFLEN, 0) == -1)
+                                {
+                                    perror("send");
+                                }
                             }
                         }
                     }
