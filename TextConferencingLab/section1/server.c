@@ -10,11 +10,12 @@
 #include <netinet/in.h>
 #include <sys/time.h> //FD_SET, FD_ISSET, FD_ZERO macros
 
-#define MAXBUFLEN 100
+#define MAXBUFLEN 1000
 #define PORT 3000
 #define MAX_CLIENTS 30
 #define MAX_SESSIONS 5
 #define MAX_CLIENTS_PER_SESSION 5
+#define USERS_COUNT 7
 
 struct Client
 {
@@ -28,6 +29,24 @@ struct Session
     char id[100];
     int clientIndexes[MAX_CLIENTS_PER_SESSION];
 };
+
+char users[USERS_COUNT][20] = {
+    "rama",
+    "gaurav",
+    "snehal",
+    "lakmal",
+    "ani",
+    "sowrov",
+    "sam"};
+
+char passwords[USERS_COUNT][20] = {
+    "rama",
+    "gaurav",
+    "snehal",
+    "lakmal",
+    "ani",
+    "sowrov",
+    "sam"};
 
 struct Session sessions[MAX_SESSIONS];
 struct Client clients[MAX_CLIENTS];
@@ -121,6 +140,23 @@ bool createClient(int sockfd, char *id, char *password)
             strcpy(clients[i].id, id);
             // printf("%s %s\n", clients[i].id, clients[i].password);
             return true;
+        }
+    }
+
+    return false;
+}
+
+bool authenticateUser(char *userId, char *password)
+{
+    for (int i = 0; i < USERS_COUNT; i++)
+    {
+        if (strcmp(users[i], userId) == 0)
+        {
+            if (strcmp(passwords[i], password) == 0)
+            {
+                return true;
+            }
+            return false;
         }
     }
 
@@ -239,7 +275,7 @@ bool message(int sockfd, char *message)
     // send message to everyone in the session
     for (int i = 0; i < MAX_CLIENTS_PER_SESSION; i++)
     {
-        if (sessions[sessionIndex].clientIndexes[i] != -1)
+        if (sessions[sessionIndex].clientIndexes[i] != -1 && sessions[sessionIndex].clientIndexes[i] != sockfd)
         {
             // this is a client
             int toSockfd = clients[sessions[sessionIndex].clientIndexes[i]].sockfd;
@@ -286,7 +322,7 @@ int main(int argc, char *argv[])
     int master_socket, addrlen, new_socket, client_socket[MAX_CLIENTS], activity, valread;
     struct sockaddr_in address;
 
-    char buffer[1025]; // data buffer of 1K
+    char buffer[MAXBUFLEN]; // data buffer of 1K
 
     // socket descriptor set
     fd_set readfds;
@@ -395,102 +431,119 @@ int main(int argc, char *argv[])
                 }
             }
         }
-
-        // else other sockets
-        for (int i = 0; i < MAX_CLIENTS; i++)
+        else
         {
-            sd = client_socket[i];
-
-            if (FD_ISSET(sd, &readfds))
+            // else other sockets
+            for (int i = 0; i < MAX_CLIENTS; i++)
             {
-                if ((valread = read(sd, buffer, 1024)) == -1)
+                sd = client_socket[i];
+
+                if (FD_ISSET(sd, &readfds))
                 {
-                    printf("errno:%d\n", errno);
-                    perror("read");
-                }
-
-                // This is where we process the code we received
-                printf("received reply from client: ");
-                printf("%s", buffer);
-                printf("\n");
-
-                char *type = strtok(buffer, ":");
-                char *size = strtok(NULL, ":");
-                char *source = strtok(NULL, ":");
-                char *data = strtok(NULL, ":");
-
-                printf("type: %s , size: %s , source: %s , data: %s\n", type, size, source, data);
-
-                if (strcmp(type, "LOGIN") == 0)
-                {
-                    printf("login\n");
-                    if (createClient(sd, source, data) == true)
+                    if ((valread = read(sd, buffer, MAXBUFLEN)) == -1)
                     {
-                        char *message = "LO_ACK:0:server:";
-                        if (send(sd, message, MAXBUFLEN, 0) == -1)
+                        printf("errno:%d\n", errno);
+                        perror("read");
+                    }
+
+                    // This is where we process the code we received
+                    printf("received reply from client: ");
+                    printf("%s", buffer);
+                    printf("\n");
+
+                    char *type = strtok(buffer, ":");
+                    char *size = strtok(NULL, ":");
+                    char *source = strtok(NULL, ":");
+                    char *data = strtok(NULL, ":");
+
+                    printf("type: %s , size: %s , source: %s , data: %s\n", type, size, source, data);
+
+                    if (type == NULL)
+                    {
+                        // null check
+                    }
+                    else if(strcmp(type, "LOGIN") == 0)
+                    {
+                        printf("login\n");
+                        bool loginSuccess = false;
+
+                        if (authenticateUser(source, data) == true)
                         {
-                            perror("send");
+                            printf("authenticate success\n");
+                            loginSuccess = createClient(sd, source, data);
+                        }
+                        else
+                        {
+                            printf("authenticate failed\n");
+                        }
+
+                        if (loginSuccess == true)
+                        {
+                            printf("client creation success\n");
+                            char *message = "LO_ACK:0:server:";
+                            if (send(sd, message, MAXBUFLEN, 0) == -1)
+                            {
+                                perror("send");
+                            }
+                        }
+                        else
+                        {
+                            printf("client creation failed\n");
+                            char *message = "LO_NAK:0:server:";
+                            if (send(sd, message, MAXBUFLEN, 0) == -1)
+                            {
+                                perror("send");
+                            }
                         }
                     }
-                    else
+                    else if (strcmp(type, "JOIN") == 0)
                     {
-                        char *message = "LO_NAK:0:server:";
-                        if (send(sd, message, MAXBUFLEN, 0) == -1)
-                        {
-                            perror("send");
-                        }
-                    }
-                }
-                else if (strcmp(type, "JOIN") == 0)
-                {
-                    printf("join session\n");
-                    if (joinSession(sd, data) == 0)
-                    {
-                        char *message[100];
-                        sprintf(message, "%s:%s:%s:%s", "JN_ACK", "0", "server", "");
-                        if (send(sd, message, MAXBUFLEN, 0) == -1)
-                        {
-                            perror("send");
-                        }
-                    }
-                    else if (joinSession(sd, data) == 1)
-                    {
-                        char message[100];
-                        char size[64];
-                        sprintf(size, "%d", strlen(data) + strlen(" - no space for client"));
-
-                        sprintf(message, "%s:%s:%s:%s%s", "JN_NAK", size, "server", data, " - no space for client");
-                        if (send(sd, message, MAXBUFLEN, 0) == -1)
-                        {
-                            perror("send");
-                        }
-                    }
-                    else if (joinSession(sd, data) == 2)
-                    {
-                        char message[100];
-                        char size[64];
-                        sprintf(size, "%d", strlen(data) + strlen(" - session id not found"));
-
-                        sprintf(message, "%s:%s:%s:%s%s", "JN_NAK", size, "server", data, " - session id not found");
-                        if (send(sd, message, MAXBUFLEN, 0) == -1)
-                        {
-                            perror("send");
-                        }
-                    }
-                }
-                else if (strcmp(type, "LEAVE_SESS") == 0)
-                {
-                    if (leaveSession(sd) == true)
-                    {
-                        printf("leave session\n");
-                    }
-                }
-                else if (strcmp(type, "NEW_SESS") == 0)
-                {
-                    printf("new session\n");
-                    if (createSession(data) == true)
-                    {
+                        printf("join session\n");
                         if (joinSession(sd, data) == 0)
+                        {
+                            char *message[100];
+                            sprintf(message, "%s:%s:%s:%s", "JN_ACK", "0", "server", "");
+                            if (send(sd, message, MAXBUFLEN, 0) == -1)
+                            {
+                                perror("send");
+                            }
+                        }
+                        else if (joinSession(sd, data) == 1)
+                        {
+                            char message[100];
+                            char size[64];
+                            sprintf(size, "%d", strlen(data) + strlen(" - no space for client"));
+
+                            sprintf(message, "%s:%s:%s:%s%s", "JN_NAK", size, "server", data, " - no space for client");
+                            if (send(sd, message, MAXBUFLEN, 0) == -1)
+                            {
+                                perror("send");
+                            }
+                        }
+                        else if (joinSession(sd, data) == 2)
+                        {
+                            char message[100];
+                            char size[64];
+                            sprintf(size, "%d", strlen(data) + strlen(" - session id not found"));
+
+                            sprintf(message, "%s:%s:%s:%s%s", "JN_NAK", size, "server", data, " - session id not found");
+                            if (send(sd, message, MAXBUFLEN, 0) == -1)
+                            {
+                                perror("send");
+                            }
+                        }
+                    }
+                    else if (strcmp(type, "LEAVE_SESS") == 0)
+                    {
+                        if (leaveSession(sd) == true)
+                        {
+                            printf("leave session\n");
+                        }
+                    }
+                    else if (strcmp(type, "NEW_SESS") == 0)
+                    {
+                        printf("new session\n");
+                        if (createSession(data) == true)
                         {
                             char *message = "NS_ACK:0:server:";
                             if (send(sd, message, MAXBUFLEN, 0) == -1)
@@ -498,42 +551,37 @@ int main(int argc, char *argv[])
                                 perror("send");
                             }
                         }
+                    }
+                    else if (strcmp(type, "QUERY") == 0)
+                    {
+                        char clientList[MAXBUFLEN];
+                        sprintf(clientList, "%s ", getAllClients());
+                        char sessionList[MAXBUFLEN];
+                        sprintf(sessionList, "%s ", getAllSessions());
 
+                        char message[MAXBUFLEN];
+                        char size[MAXBUFLEN];
+                        sprintf(size, "%d", strlen(clientList));
+
+                        sprintf(message, "%s:%s:%s:%s;%s", "QU_ACK", size, "server", clientList, sessionList);
                         if (send(sd, message, MAXBUFLEN, 0) == -1)
                         {
                             perror("send");
                         }
                     }
-                }
-                else if (strcmp(type, "QUERY") == 0)
-                {
-                    char clientList[MAXBUFLEN];
-                    sprintf(clientList, "%s ", getAllClients());
-                    char sessionList[MAXBUFLEN];
-                    sprintf(sessionList, "%s ", getAllSessions());
-
-                    char message[MAXBUFLEN];
-                    char size[MAXBUFLEN];
-                    sprintf(size, "%d", strlen(clientList));
-
-                    sprintf(message, "%s:%s:%s:%s;%s", "QU_ACK", size, "server", clientList, sessionList);
-                    if (send(sd, message, MAXBUFLEN, 0) == -1)
+                    else if (strcmp(type, "EXIT") == 0)
                     {
-                        perror("send");
+                        printf("client exit\n");
+                        // need to remove from sessions?
+                        removeClient(sd);
+                        close(sd);
+                        client_socket[i] = 0;
                     }
-                }
-                else if (strcmp(type, "EXIT") == 0)
-                {
-                    printf("client exit\n");
-                    // need to remove from sessions?
-                    removeClient(sd);
-                    close(sd);
-                    client_socket[i] = 0;
-                }
-                else if (strcmp(type, "MESSAGE") == 0)
-                {
-                    printf("client message\n");
-                    message(sd, data);
+                    else if (strcmp(type, "MESSAGE") == 0)
+                    {
+                        printf("client message\n");
+                        message(sd, data);
+                    }
                 }
             }
         }
