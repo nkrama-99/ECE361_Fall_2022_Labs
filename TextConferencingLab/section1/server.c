@@ -149,6 +149,14 @@ bool createClient(int sockfd, char *id, char *password)
 
 bool authenticateUser(char *userId, char *password)
 {
+    for (int i = 0; i < MAX_CLIENTS; i++)
+    {
+        if (strcmp(clients[i].id, userId) == 0)
+        {
+            return false;
+        }
+    }
+
     for (int i = 0; i < USERS_COUNT; i++)
     {
         if (strcmp(users[i], userId) == 0)

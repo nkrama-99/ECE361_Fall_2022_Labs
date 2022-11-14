@@ -87,7 +87,6 @@ void login(char *password, char *server_ip, char *server_port)
     char *reply_source = strtok(NULL, ":");
     char *reply_data = strtok(NULL, ":");
 
-    // printf("%s\n", reply_type);
     if (strcmp(reply_type, "LO_ACK") == 0)
     {
         printf("logged in successfully\n");
@@ -96,7 +95,7 @@ void login(char *password, char *server_ip, char *server_port)
     }
     else if (strcmp(reply_type, "LO_NAK") == 0)
     {
-        printf("login unsuccessful");
+        printf("login unsuccessful\n");
     }
 }
 
