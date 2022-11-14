@@ -490,7 +490,15 @@ int main(int argc, char *argv[])
                     printf("new session\n");
                     if (createSession(data) == true)
                     {
-                        char *message = "NS_ACK:0:server:";
+                        if (joinSession(sd, data) == 0)
+                        {
+                            char *message = "NS_ACK:0:server:";
+                            if (send(sd, message, MAXBUFLEN, 0) == -1)
+                            {
+                                perror("send");
+                            }
+                        }
+
                         if (send(sd, message, MAXBUFLEN, 0) == -1)
                         {
                             perror("send");

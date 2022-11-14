@@ -212,9 +212,10 @@ void createSession(char *session_id)
 
     if (strcmp(reply_type, "NS_ACK") == 0)
     {
-        printf("created session successfully\n");
+        printf("created and joined session successfully\n");
         connected = true;
         isLoggedIn = true;
+        inSession = true;
     }
 }
 
@@ -376,7 +377,7 @@ int main(int argc, char **argv)
                     }
                     else
                     {
-                        createSession(session_id);
+                        createSession(session_id);                        
                     }
                 }
             }
