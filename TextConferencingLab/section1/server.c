@@ -253,6 +253,22 @@ bool leaveSession(int sockfd)
             {
                 // client is found in this session, will be removed
                 sessions[i].clientIndexes[j] = -1;
+
+                bool clientsInSession = false;
+                for (int k = 0; k < MAX_CLIENTS_PER_SESSION; k++)
+                {
+                    if (sessions[i].clientIndexes[j] != -1)
+                    {
+                        clientsInSession = true;
+                    }
+                }
+
+                if (clientsInSession == false)
+                {
+                    strcpy(sessions[i].id, "");
+                }
+
+                printf("%d\n", sessions[i].clientIndexes[j]);
                 return true;
             }
         }
