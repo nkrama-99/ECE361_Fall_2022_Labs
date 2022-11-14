@@ -11,11 +11,12 @@
 #include <sys/time.h> //FD_SET, FD_ISSET, FD_ZERO macros
 
 #define MAXBUFLEN 1000
-#define PORT 3000
 #define MAX_CLIENTS 30
 #define MAX_SESSIONS 5
 #define MAX_CLIENTS_PER_SESSION 5
 #define USERS_COUNT 7
+
+int PORT;
 
 struct Client
 {
@@ -315,6 +316,10 @@ void initClients()
 
 int main(int argc, char *argv[])
 {
+    int PORT = atoi(argv[1]);
+
+    printf("Chosen port: %d \n", PORT);
+
     initClients();
     initSessions();
 
