@@ -375,6 +375,9 @@ int main(int argc, char **argv)
                 {
                     printf("you are not logged in\n");
                 }
+                else if (inSession == true) {
+                    printf("you cannot create a session if you are already in a session\n");
+                }
                 else
                 {
                     char *session_id = strtok(NULL, " ");
