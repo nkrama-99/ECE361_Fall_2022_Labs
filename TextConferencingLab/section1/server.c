@@ -66,35 +66,40 @@ int findClientIndexFromSockfd(int sockfd)
     return -1;
 }
 
-char *getAllClients()
+void buildQuery(char *buf)
 {
-    char buf[MAXBUFLEN];
-
+    strcat(buf, "Active Clients...\n");
     for (int i = 0; i < MAX_CLIENTS; i++)
     {
         if (clients[i].sockfd != -1)
         {
-            strcpy(buf, clients[i].id);
+            char temp[MAXBUFLEN] = "";
+            sprintf(temp, "- %s\n", clients[i].id);
+            strcat(buf, temp);
         }
     }
-    return (buf);
-}
+    strcat(buf, "\n");
 
-char *getAllSessions()
-{
-    char buf[MAXBUFLEN];
-
+    strcat(buf, "Active Sessions...\n");
     for (int i = 0; i < MAX_SESSIONS; i++)
     {
         if (strlen(sessions[i].id) != 0)
         {
-            strcpy(buf, sessions[i].id);
+            char temp[MAXBUFLEN] = "";
+            sprintf(temp, "- %s \n", sessions[i].id);
+            strcat(buf, temp);
+            for (int j = 0; j < MAX_CLIENTS_PER_SESSION; j++)
+            {
+                if (sessions[i].clientIndexes[j] != -1)
+                {
+                    char temp2[MAXBUFLEN] = "";
+                    sprintf(temp2, "  -- %s\n", clients[sessions[i].clientIndexes[j]].id);
+                    strcat(buf, temp2);
+                }
+            }
         }
     }
-
-    printf("buf: %s\n", buf);
-
-    return (buf);
+    strcat(buf, "\n");
 }
 
 void printAllClients()
@@ -126,7 +131,6 @@ void printAllSessions()
                     printf("     --- clientIndex: %d | clientId: %s\n", sessions[i].clientIndexes[j], clients[sessions[i].clientIndexes[j]].id);
                 }
             }
-            printf("\n");
         }
     }
     printf("\n");
@@ -605,20 +609,14 @@ int main(int argc, char *argv[])
                     }
                     else if (strcmp(type, "QUERY") == 0)
                     {
-                        char clientList[MAXBUFLEN];
-                        sprintf(clientList, "%s ", getAllClients());
-                        char sessionList[MAXBUFLEN];
-                        sprintf(sessionList, "%s ", getAllSessions());
+                        char query[MAXBUFLEN] = "";
+                        buildQuery(query);
 
-                        printf("session list: %s\n", sessionList);
-
-                        char message[MAXBUFLEN];
+                        char message[MAXBUFLEN] = "";
                         char size[MAXBUFLEN];
-                        sprintf(size, "%d", strlen(clientList) + strlen(sessionList) + 1);
-
-                        sprintf(message, "%s:%s:%s:%s;%s", "QU_ACK", size, "server", clientList, sessionList);
-
-                        printf("message: %s", message);
+                        sprintf(size, "%d", strlen(query) + 1);
+                        sprintf(message, "%s:%s:%s:%s", "QU_ACK", size, "server", query);
+                        printf("message body: %s", message);
 
                         if (send(sd, message, MAXBUFLEN, 0) == -1)
                         {

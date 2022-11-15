@@ -249,23 +249,18 @@ void query()
         exit(1);
     }
 
-    printf("%s\n", buf);
+    // printf("printing buf...\n");
+    // printf("%s\n", buf);
+    // printf("done...\n");
 
     char *reply_type = strtok(buf, ":");
     char *reply_size = strtok(NULL, ":");
     char *source = strtok(NULL, ":");
     char *data = strtok(NULL, ":");
-    char *clients = strtok(data, ";");
-    char *sessions = strtok(NULL, ";");
 
     if (strcmp(reply_type, "QU_ACK") == 0)
     {
-        printf("Here are all the clients connected to the server:\n");
-        printf("%s\n", clients);
-        printf("Here are all the sessions hosted by the server:\n");
-        printf("%s\n", sessions);
-        connected = true;
-        isLoggedIn = true;
+        printf("%s\n", data);
     }
 }
 
@@ -389,7 +384,7 @@ int main(int argc, char **argv)
                     }
                     else
                     {
-                        createSession(session_id);                        
+                        createSession(session_id);
                     }
                 }
             }
