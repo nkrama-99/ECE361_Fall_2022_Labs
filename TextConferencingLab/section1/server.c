@@ -91,6 +91,9 @@ char *getAllSessions()
             strcpy(buf, sessions[i].id);
         }
     }
+
+    printf("buf: %s\n", buf);
+
     return (buf);
 }
 
@@ -607,11 +610,16 @@ int main(int argc, char *argv[])
                         char sessionList[MAXBUFLEN];
                         sprintf(sessionList, "%s ", getAllSessions());
 
+                        printf("session list: %s\n", sessionList);
+
                         char message[MAXBUFLEN];
                         char size[MAXBUFLEN];
-                        sprintf(size, "%d", strlen(clientList));
+                        sprintf(size, "%d", strlen(clientList) + strlen(sessionList) + 1);
 
                         sprintf(message, "%s:%s:%s:%s;%s", "QU_ACK", size, "server", clientList, sessionList);
+
+                        printf("message: %s", message);
+
                         if (send(sd, message, MAXBUFLEN, 0) == -1)
                         {
                             perror("send");

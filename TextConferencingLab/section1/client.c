@@ -249,6 +249,8 @@ void query()
         exit(1);
     }
 
+    printf("%s\n", buf);
+
     char *reply_type = strtok(buf, ":");
     char *reply_size = strtok(NULL, ":");
     char *source = strtok(NULL, ":");
@@ -275,8 +277,6 @@ void sendMessage(char *messageContent)
     sprintf(size, "%d", strlen(messageContent));
 
     sprintf(message, "%s:%s:%s:%s", type, size, set_client_id, messageContent);
-
-    printf("to server: %s\n", message);
 
     if (send(sockfd, message, MAXBUFLEN, 0) == -1)
     {
@@ -308,9 +308,11 @@ int main(int argc, char **argv)
         if (FD_ISSET(STDIN, &read_fds))
         {
             char *cmd;
+            char message[MAXBUFLEN];
             char buf[MAXBUFLEN];
             fgets(buf, MAXBUFLEN, stdin);
             buf[strcspn(buf, "\n")] = 0;
+            strcpy(message, buf);
             cmd = strtok(buf, " ");
 
             if (strcmp(cmd, "/login") == 0)
@@ -422,7 +424,7 @@ int main(int argc, char **argv)
             {
                 if (inSession == true)
                 {
-                    sendMessage(buf);
+                    sendMessage(message);
                 }
                 else
                 {
