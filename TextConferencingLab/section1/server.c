@@ -315,14 +315,17 @@ bool message(int sockfd, char *message)
     // send message to everyone in the session
     for (int i = 0; i < MAX_CLIENTS_PER_SESSION; i++)
     {
-        if (sessions[sessionIndex].clientIndexes[i] != -1 && sessions[sessionIndex].clientIndexes[i] != sockfd)
+        if (sessions[sessionIndex].clientIndexes[i] != -1)
         {
             // this is a client
             int toSockfd = clients[sessions[sessionIndex].clientIndexes[i]].sockfd;
-            if (send(toSockfd, body, MAXBUFLEN, 0) == -1)
+            if (toSockfd != sockfd)
             {
-                perror("send");
-                // return false;
+                if (send(toSockfd, body, MAXBUFLEN, 0) == -1)
+                {
+                    perror("send");
+                    // return false;
+                }
             }
         }
     }
