@@ -505,7 +505,16 @@ int main(int argc, char *argv[])
 
                     printf("type: %s , size: %s , source: %s , data: %s\n", type, size, source, data);
 
-                    if (type == NULL)
+                    if (valread == 0)
+                    {
+                        printf("unexpected connection lost on sockfd: %d\n", sd);
+                        // attempting to gracefully remove them
+                        leaveSession(sd);
+                        removeClient(sd);
+                        close(sd);
+                        client_socket[i] = 0;
+                    }
+                    else if (type == NULL)
                     {
                         // null check
                     }
