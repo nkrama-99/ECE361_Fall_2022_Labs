@@ -16,8 +16,7 @@
 
 bool inSession = false; // whether user is in a session
 int sockfd = 0;
-struct sockaddr_in servaddr;
-socklen_t addr_len;
+struct addrinfo *servinfo;
 int numbytes;
 char set_client_id[MAXBUFLEN];
 bool connected = false;
@@ -39,34 +38,43 @@ void login(char *password, char *server_ip, char *server_port)
 
     sprintf(message, "%s:%s:%s:%s", type, size, set_client_id, password);
 
-    bzero(&servaddr, sizeof(servaddr));
-    // create socket
-    sockfd = socket(AF_INET, SOCK_STREAM, 0);
-    if (sockfd == -1)
+    struct addrinfo hints;
+    memset(&hints, 0, sizeof hints);
+    hints.ai_family = AF_UNSPEC;
+    hints.ai_socktype = SOCK_STREAM;
+
+    int rv;
+    if ((rv = getaddrinfo(server_ip, server_port, &hints, &servinfo)) != 0)
     {
-        printf("socket creation failed...\n");
-        exit(1);
-    }
-    else
-    {
-        printf("Socket successfully created..\n");
+        fprintf(stderr, "getaddrinfo: %s\n", gai_strerror(rv));
+        return 1;
     }
 
-    // configure server address
-    servaddr.sin_family = AF_INET;
-    servaddr.sin_addr.s_addr = inet_addr(server_ip);
-    servaddr.sin_port = htons(atoi(server_port));
-    addr_len = sizeof servaddr;
+    for (servinfo; servinfo != NULL; servinfo = servinfo->ai_next)
+    {
+        if ((sockfd = socket(servinfo->ai_family, servinfo->ai_socktype,
+                             servinfo->ai_protocol)) == -1)
+        {
+            perror("client: socket");
+            continue;
+        }
 
-    // connect the client socket to server socket
-    if (connect(sockfd, (struct sockaddr *)&servaddr, sizeof(servaddr)) != 0)
-    {
-        printf("connection with the server failed...\n");
-        exit(1);
-    }
-    else
-    {
+        if (connect(sockfd, servinfo->ai_addr, servinfo->ai_addrlen) == -1)
+        {
+            printf("connection with the server failed...\n");
+            perror("client: connect");
+            close(sockfd);
+            continue;
+        }
+
         printf("connected to the server, attempting to log in\n");
+        break;
+    }
+
+    if (servinfo == NULL)
+    {
+        fprintf(stderr, "client: failed to connect\n");
+        return;
     }
 
     if (send(sockfd, message, MAXBUFLEN, 0) == -1)
@@ -75,11 +83,9 @@ void login(char *password, char *server_ip, char *server_port)
     }
 
     // wait for login_ack
-    if ((numbytes = recvfrom(sockfd, buf, MAXBUFLEN - 1, 0,
-                             (struct sockaddr *)&servaddr, &addr_len)) == -1)
+    if ((numbytes = recv(sockfd, buf, MAXBUFLEN - 1, 0)) == -1)
     {
         perror("recvfrom");
-        exit(1);
     }
 
     char *reply_type = strtok(buf, ":");
@@ -120,6 +126,7 @@ void logout()
     connected = false;
     printf("logged out and disconnected from server\n");
     isLoggedIn = false;
+    freeaddrinfo(servinfo);
 }
 
 void joinSession(char *session_id)
@@ -143,11 +150,9 @@ void joinSession(char *session_id)
     }
 
     // wait for login_ack
-    if ((numbytes = recvfrom(sockfd, buf, MAXBUFLEN - 1, 0,
-                             (struct sockaddr *)&servaddr, &addr_len)) == -1)
+    if ((numbytes = recv(sockfd, buf, MAXBUFLEN - 1, 0)) == -1)
     {
         perror("recvfrom");
-        exit(1);
     }
 
     char *reply_type = strtok(buf, ":");
@@ -204,11 +209,9 @@ void createSession(char *session_id)
         perror("send");
     }
 
-    if ((numbytes = recvfrom(sockfd, buf, MAXBUFLEN - 1, 0,
-                             (struct sockaddr *)&servaddr, &addr_len)) == -1)
+    if ((numbytes = recv(sockfd, buf, MAXBUFLEN - 1, 0)) == -1)
     {
         perror("recvfrom");
-        exit(1);
     }
 
     char *reply_type = strtok(buf, ":");
@@ -242,11 +245,9 @@ void query()
         perror("send");
     }
 
-    if ((numbytes = recvfrom(sockfd, buf, MAXBUFLEN - 1, 0,
-                             (struct sockaddr *)&servaddr, &addr_len)) == -1)
+    if ((numbytes = recv(sockfd, buf, MAXBUFLEN - 1, 0)) == -1)
     {
         perror("recvfrom");
-        exit(1);
     }
 
     // printf("printing buf...\n");
@@ -375,7 +376,8 @@ int main(int argc, char **argv)
                 {
                     printf("you are not logged in\n");
                 }
-                else if (inSession == true) {
+                else if (inSession == true)
+                {
                     printf("you cannot create a session if you are already in a session\n");
                 }
                 else
@@ -435,11 +437,9 @@ int main(int argc, char **argv)
         {
             char buf[MAXBUFLEN] = "";
 
-            if ((numbytes = recvfrom(sockfd, buf, MAXBUFLEN - 1, 0,
-                                     (struct sockaddr *)&servaddr, &addr_len)) == -1)
+            if ((numbytes = recv(sockfd, buf, MAXBUFLEN - 1, 0)) == -1)
             {
                 perror("recvfrom");
-                exit(1);
             }
 
             char *cmd = strtok(buf, ":");
