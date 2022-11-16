@@ -311,7 +311,11 @@ int main(int argc, char **argv)
             strcpy(message, buf);
             cmd = strtok(buf, " ");
 
-            if (strcmp(cmd, "/login") == 0)
+            if (cmd == NULL) {
+                // null check
+                // short circuit, prevents application from breaking 
+            }
+            else if (strcmp(cmd, "/login") == 0)
             {
 
                 char *client_id = strtok(NULL, " ");
