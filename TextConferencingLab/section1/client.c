@@ -10,6 +10,7 @@
 #include <netinet/in.h>
 #include <arpa/inet.h>
 #include <netdb.h>
+#include <signal.h>
 
 #define MAXBUFLEN 1000
 #define STDIN 0
@@ -21,6 +22,13 @@ int numbytes;
 char set_client_id[MAXBUFLEN];
 bool connected = false;
 bool isLoggedIn = false;
+
+void sighandler(int sig_num)
+{
+    signal(SIGTSTP, sighandler);
+    printf("crashed!\n");
+    exit(1);
+}
 
 void login(char *password, char *server_ip, char *server_port)
 {
@@ -284,7 +292,9 @@ int main(int argc, char **argv)
 {
     bool isClientOn = true;
     fd_set read_fds;
-
+    
+    signal(SIGTSTP, sighandler);
+    
     while (isClientOn == true)
     {
         // set file descriptors to socket and io

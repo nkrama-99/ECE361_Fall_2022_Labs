@@ -487,7 +487,7 @@ int main(int argc, char *argv[])
 
                 if (FD_ISSET(sd, &readfds))
                 {
-                    if ((valread = read(sd, buffer, MAXBUFLEN)) == -1)
+                    if ((valread = recv(sd, buffer, MAXBUFLEN - 1, 0)) == -1)
                     {
                         printf("errno:%d\n", errno);
                         perror("read");
