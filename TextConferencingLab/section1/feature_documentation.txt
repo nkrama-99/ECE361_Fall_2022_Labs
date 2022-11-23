@@ -1,0 +1,9 @@
+FEATURE #1: Register new user
+
+usage: /register <name> <password> <server_ip> <server_port>
+
+Notes:
+- registers and logs in user 
+- only succeeds if user doesn't already exists in "registered_users.txt"
+- cannot change password
+- cannot undo registration
