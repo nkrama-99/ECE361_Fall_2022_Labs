@@ -403,8 +403,13 @@ void initRegisteredUsers()
     // }
 }
 
-bool registerUser(char *username, char *password)
+bool registerUser(char *data)
 {
+    char *username = strtok(data, ";");
+    char *password = strtok(NULL, ";");
+
+    printf("data:%s | username:%s | password:%s\n", data, username, password);
+
     if (username == NULL || password == NULL || strcmp("", username) == 0 || strcmp("", password) == 0)
     {
         // invalid entry
@@ -618,6 +623,27 @@ int main(int argc, char *argv[])
                     else if (type == NULL)
                     {
                         // null check
+                    }
+                    else if (strcmp(type, "REGISTER") == 0)
+                    {
+                        if (registerUser(data) == true)
+                        {
+                            // success
+                            char *message = "REG_ACK:0:server:";
+                            if (send(sd, message, MAXBUFLEN, 0) == -1)
+                            {
+                                perror("send");
+                            }
+                        }
+                        else
+                        {
+                            // fail
+                            char *message = "REG_NAK:0:server:";
+                            if (send(sd, message, MAXBUFLEN, 0) == -1)
+                            {
+                                perror("send");
+                            }
+                        }
                     }
                     else if (strcmp(type, "LOGIN") == 0)
                     {

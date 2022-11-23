@@ -368,19 +368,6 @@ int main(int argc, char **argv)
             }
             else if (strcmp(cmd, "/login") == 0)
             {
-                char *username = strtok(NULL, " ");
-                char *password = strtok(NULL, " ");
-                if (username == NULL || password == NULL)
-                {
-                    printf("invalid login commands\n");
-                }
-                else
-                {
-                    registerUser(username, password);
-                }
-            }
-            else if (strcmp(cmd, "/login") == 0)
-            {
 
                 char *client_id = strtok(NULL, " ");
                 char *password = strtok(NULL, " ");
