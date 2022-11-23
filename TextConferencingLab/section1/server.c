@@ -12,6 +12,7 @@
 
 #define MAXBUFLEN 1000
 #define MAX_CLIENTS 30
+#define MAX_USERS 50
 #define MAX_SESSIONS 5
 #define MAX_CLIENTS_PER_SESSION 5
 #define USERS_COUNT 7
@@ -31,26 +32,15 @@ struct Session
     int clientIndexes[MAX_CLIENTS_PER_SESSION];
 };
 
-char users[USERS_COUNT][20] = {
-    "rama",
-    "gaurav",
-    "snehal",
-    "lakmal",
-    "ani",
-    "sowrov",
-    "sam"};
-
-char passwords[USERS_COUNT][20] = {
-    "rama",
-    "gaurav",
-    "snehal",
-    "lakmal",
-    "ani",
-    "sowrov",
-    "sam"};
+struct User
+{
+    char username[50];
+    char password[50];
+};
 
 struct Session sessions[MAX_SESSIONS];
 struct Client clients[MAX_CLIENTS];
+struct User registeredUsers[MAX_USERS];
 
 int findClientIndexFromSockfd(int sockfd)
 {
@@ -174,15 +164,17 @@ bool authenticateUser(char *userId, char *password)
     {
         if (strcmp(clients[i].id, userId) == 0)
         {
+            // already logged in
             return false;
         }
     }
 
-    for (int i = 0; i < USERS_COUNT; i++)
+    for (int i = 0; i < MAX_USERS; i++)
     {
-        if (strcmp(users[i], userId) == 0)
+        // authenticate user
+        if (strcmp(registeredUsers[i].username, userId) == 0)
         {
-            if (strcmp(passwords[i], password) == 0)
+            if (strcmp(registeredUsers[i].password, password) == 0)
             {
                 return true;
             }
@@ -461,6 +453,100 @@ void initClients()
     }
 }
 
+void initRegisteredUsers()
+{
+    for (int i = 0; i < MAX_USERS; i++)
+    {
+        strcpy(registeredUsers[i].username, "");
+        strcpy(registeredUsers[i].password, "");
+    }
+
+    char buf[1000] = "";
+    char *username;
+    char *password;
+    FILE *fp;
+    int count = 0;
+
+    fp = fopen("registered_users.txt", "r");
+    fgets(buf, 1000, fp);
+    fclose(fp);
+    // printf("%s\n", buf);
+
+    password = strtok(buf, ";");
+    while (password != NULL && count < MAX_USERS)
+    {
+        username = strtok(NULL, ";");
+        password = strtok(NULL, ";");
+        // printf("username:%s, password:%s\n", username, password);
+        if (username != NULL && password != NULL)
+        {
+            strcpy(registeredUsers[count].username, username);
+            strcpy(registeredUsers[count].password, password);
+            count++;
+        }
+    }
+
+    // for (int i = 0; i < MAX_USERS; i++)
+    // {
+    //     printf("#Registered username:%s, password:%s\n", registeredUsers[i].username, registeredUsers[i].password);
+    // }
+}
+
+bool registerUser(char *username, char *password)
+{
+    printf("username:%s | password:%s\n", username, password);
+
+    if (username == NULL || password == NULL || strcmp("", username) == 0 || strcmp("", password) == 0)
+    {
+        // invalid entry
+        return false;
+    }
+
+    for (int i = 0; i < MAX_USERS; i++)
+    {
+        if (strcmp(username, registeredUsers[i].username) == 0)
+        {
+            // user exists
+            return false;
+        }
+    }
+
+    // save in memory
+    for (int i = 0; i < MAX_USERS; i++)
+    {
+        if (strcmp("", registeredUsers[i].username) == 0)
+        {
+            // found spot
+            strcpy(registeredUsers[i].username, username);
+            strcpy(registeredUsers[i].password, password);
+            break;
+        }
+    }
+
+    // save in db
+    char buf[1000] = "";
+
+    strcat(buf, "registered_users;");
+    for (int i = 0; i < MAX_USERS; i++)
+    {
+        if (strcmp("", registeredUsers[i].username) != 0)
+        {
+            strcat(buf, registeredUsers[i].username);
+            strcat(buf, ";");
+            strcat(buf, registeredUsers[i].password);
+            strcat(buf, ";");
+        }
+    }
+
+    // printf("%s\n", buf);
+    FILE *fp;
+    fp = fopen("registered_users.txt", "w");
+    fprintf(fp, buf);
+    fclose(fp);
+
+    return true;
+}
+
 int main(int argc, char *argv[])
 {
     int PORT = atoi(argv[1]);
@@ -469,6 +555,7 @@ int main(int argc, char *argv[])
 
     initClients();
     initSessions();
+    initRegisteredUsers();
 
     int opt = 1;
     int master_socket, addrlen, new_socket, client_socket[MAX_CLIENTS], activity, valread;
@@ -622,6 +709,44 @@ int main(int argc, char *argv[])
                     else if (type == NULL)
                     {
                         // null check
+                    }
+                    else if (strcmp(type, "REGISTER") == 0)
+                    {
+                        printf("register\n");
+                        bool regSuccess = false;
+
+                        if (registerUser(source, data) == true)
+                        {
+                            printf("register success\n");
+                            regSuccess = createClient(sd, source, data);
+                        }
+                        else
+                        {
+                            printf("authenticate failed\n");
+                        }
+
+                        if (regSuccess == true)
+                        {
+                            printf("registration success and logged in\n");
+                            char *message = "REG_ACK:0:server:";
+                            if (send(sd, message, MAXBUFLEN, 0) == -1)
+                            {
+                                perror("send");
+                            }
+                        }
+                        else
+                        {
+                            printf("registration failed\n");
+                            
+                            char *message = "REG_NAK:0:server:";
+                            if (send(sd, message, MAXBUFLEN, 0) == -1)
+                            {
+                                perror("send");
+                            }
+
+                            close(sd);
+                            client_socket[i] = 0;
+                        }
                     }
                     else if (strcmp(type, "LOGIN") == 0)
                     {
