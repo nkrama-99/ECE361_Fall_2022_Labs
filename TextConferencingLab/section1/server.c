@@ -38,24 +38,6 @@ struct User
     char password[50];
 };
 
-char users[USERS_COUNT][20] = {
-    "rama",
-    "gaurav",
-    "snehal",
-    "lakmal",
-    "ani",
-    "sowrov",
-    "sam"};
-
-char passwords[USERS_COUNT][20] = {
-    "rama",
-    "gaurav",
-    "snehal",
-    "lakmal",
-    "ani",
-    "sowrov",
-    "sam"};
-
 struct Session sessions[MAX_SESSIONS];
 struct Client clients[MAX_CLIENTS];
 struct User registeredUsers[MAX_USERS];
@@ -168,15 +150,17 @@ bool authenticateUser(char *userId, char *password)
     {
         if (strcmp(clients[i].id, userId) == 0)
         {
+            // already logged in
             return false;
         }
     }
 
-    for (int i = 0; i < USERS_COUNT; i++)
+    for (int i = 0; i < MAX_USERS; i++)
     {
-        if (strcmp(users[i], userId) == 0)
+        // authenticate user
+        if (strcmp(registeredUsers[i].username, userId) == 0)
         {
-            if (strcmp(passwords[i], password) == 0)
+            if (strcmp(registeredUsers[i].password, password) == 0)
             {
                 return true;
             }
