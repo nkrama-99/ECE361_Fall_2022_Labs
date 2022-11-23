@@ -55,7 +55,7 @@ void login(char *password, char *server_ip, char *server_port)
     if ((rv = getaddrinfo(server_ip, server_port, &hints, &servinfo)) != 0)
     {
         fprintf(stderr, "getaddrinfo: %s\n", gai_strerror(rv));
-        return 1;
+        return;
     }
 
     for (servinfo; servinfo != NULL; servinfo = servinfo->ai_next)
@@ -288,13 +288,53 @@ void sendMessage(char *messageContent)
     }
 }
 
+void registerUser(char *username, char *password)
+{
+    char buf[MAXBUFLEN];
+    char message[MAXBUFLEN] = "";
+    char type[] = "MESSAGE";
+    char size[MAXBUFLEN];
+
+    char temp[100] = "";
+    strcat(temp, username);
+    strcat(temp, password);
+
+    sprintf(size, "%d", strlen(temp));
+
+    sprintf(message, "%s:%s:%s:%s", type, size, set_client_id, temp);
+
+    if (send(sockfd, message, MAXBUFLEN, 0) == -1)
+    {
+        perror("send");
+    }
+
+    if ((numbytes = recv(sockfd, buf, MAXBUFLEN - 1, 0)) == -1)
+    {
+        perror("recvfrom");
+    }
+
+    char *reply_type = strtok(buf, ":");
+    char *reply_size = strtok(NULL, ":");
+    char *source = strtok(NULL, ":");
+    char *data = strtok(NULL, ":");
+
+    if (strcmp(reply_type, "REG_ACK") == 0)
+    {
+        printf("created and joined session successfully\n");
+    }
+    else if (strcmp(reply_type, "REG_NAK") == 0)
+    {
+        printf("session creation failed\n");
+    }
+}
+
 int main(int argc, char **argv)
 {
     bool isClientOn = true;
     fd_set read_fds;
-    
+
     signal(SIGTSTP, sighandler);
-    
+
     while (isClientOn == true)
     {
         // set file descriptors to socket and io
@@ -321,9 +361,23 @@ int main(int argc, char **argv)
             strcpy(message, buf);
             cmd = strtok(buf, " ");
 
-            if (cmd == NULL) {
+            if (cmd == NULL)
+            {
                 // null check
-                // short circuit, prevents application from breaking 
+                // short circuit, prevents application from breaking
+            }
+            else if (strcmp(cmd, "/login") == 0)
+            {
+                char *username = strtok(NULL, " ");
+                char *password = strtok(NULL, " ");
+                if (username == NULL || password == NULL)
+                {
+                    printf("invalid login commands\n");
+                }
+                else
+                {
+                    registerUser(username, password);
+                }
             }
             else if (strcmp(cmd, "/login") == 0)
             {
