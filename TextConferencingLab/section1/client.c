@@ -30,6 +30,93 @@ void sighandler(int sig_num)
     exit(1);
 }
 
+void registerUser(char *password, char *server_ip, char *server_port)
+{
+    printf("server:%s, port:%s, end...\n", server_ip, server_port);
+    if (isLoggedIn == true)
+    {
+        printf("you are logged in, you need to logout first\n");
+        return;
+    }
+
+    char buf[MAXBUFLEN] = "";
+    char message[MAXBUFLEN] = "";
+    char type[] = "REGISTER";
+    char size[MAXBUFLEN];
+
+    sprintf(size, "%d", strlen(password));
+
+    sprintf(message, "%s:%s:%s:%s", type, size, set_client_id, password);
+    printf("%s\n", message);
+
+    struct addrinfo hints;
+    memset(&hints, 0, sizeof hints);
+    hints.ai_family = AF_UNSPEC;
+    hints.ai_socktype = SOCK_STREAM;
+
+    int rv;
+    if ((rv = getaddrinfo(server_ip, server_port, &hints, &servinfo)) != 0)
+    {
+        fprintf(stderr, "getaddrinfo: %s\n", gai_strerror(rv));
+        return;
+    }
+
+    for (servinfo; servinfo != NULL; servinfo = servinfo->ai_next)
+    {
+        if ((sockfd = socket(servinfo->ai_family, servinfo->ai_socktype,
+                             servinfo->ai_protocol)) == -1)
+        {
+            perror("client: socket");
+            continue;
+        }
+
+        if (connect(sockfd, servinfo->ai_addr, servinfo->ai_addrlen) == -1)
+        {
+            printf("connection with the server failed...\n");
+            perror("client: connect");
+            close(sockfd);
+            continue;
+        }
+
+        printf("connected to the server, attempting to log in\n");
+        break;
+    }
+
+    if (servinfo == NULL)
+    {
+        fprintf(stderr, "client: failed to connect\n");
+        return;
+    }
+
+    if (send(sockfd, message, MAXBUFLEN, 0) == -1)
+    {
+        perror("send");
+    }
+
+    // wait for login_ack
+    if ((numbytes = recv(sockfd, buf, MAXBUFLEN - 1, 0)) == -1)
+    {
+        perror("recvfrom");
+    }
+
+    char *reply_type = strtok(buf, ":");
+    char *reply_size = strtok(NULL, ":");
+    char *reply_source = strtok(NULL, ":");
+    char *reply_data = strtok(NULL, ":");
+
+    if (strcmp(reply_type, "REG_ACK") == 0)
+    {
+        printf("registered and logged in successfully\n");
+        connected = true;
+        isLoggedIn = true;
+    }
+    else if (strcmp(reply_type, "REG_NAK") == 0)
+    {
+        printf("register unsuccessful\n");
+        close(sockfd);
+    }
+}
+
 void login(char *password, char *server_ip, char *server_port)
 {
     if (isLoggedIn == true)
@@ -288,46 +375,6 @@ void sendMessage(char *messageContent)
     }
 }
 
-void registerUser(char *username, char *password)
-{
-    char buf[MAXBUFLEN];
-    char message[MAXBUFLEN] = "";
-    char type[] = "MESSAGE";
-    char size[MAXBUFLEN];
-
-    char temp[100] = "";
-    strcat(temp, username);
-    strcat(temp, password);
-
-    sprintf(size, "%d", strlen(temp));
-
-    sprintf(message, "%s:%s:%s:%s", type, size, set_client_id, temp);
-
-    if (send(sockfd, message, MAXBUFLEN, 0) == -1)
-    {
-        perror("send");
-    }
-
-    if ((numbytes = recv(sockfd, buf, MAXBUFLEN - 1, 0)) == -1)
-    {
-        perror("recvfrom");
-    }
-
-    char *reply_type = strtok(buf, ":");
-    char *reply_size = strtok(NULL, ":");
-    char *source = strtok(NULL, ":");
-    char *data = strtok(NULL, ":");
-
-    if (strcmp(reply_type, "REG_ACK") == 0)
-    {
-        printf("created and joined session successfully\n");
-    }
-    else if (strcmp(reply_type, "REG_NAK") == 0)
-    {
-        printf("session creation failed\n");
-    }
-}
-
 int main(int argc, char **argv)
 {
     bool isClientOn = true;
@@ -365,6 +412,24 @@ int main(int argc, char **argv)
             {
                 // null check
                 // short circuit, prevents application from breaking
+            }
+            else if (strcmp(cmd, "/register") == 0)
+            {
+
+                char *client_id = strtok(NULL, " ");
+                char *password = strtok(NULL, " ");
+                char *server_ip = strtok(NULL, " ");
+                char *server_port = strtok(NULL, " ");
+
+                if (client_id == NULL || password == NULL || server_ip == NULL || server_port == NULL)
+                {
+                    printf("invalid login commands\n");
+                }
+                else
+                {
+                    strcpy(set_client_id, client_id);
+                    registerUser(password, server_ip, server_port);
+                }
             }
             else if (strcmp(cmd, "/login") == 0)
             {

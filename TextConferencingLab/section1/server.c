@@ -403,12 +403,9 @@ void initRegisteredUsers()
     // }
 }
 
-bool registerUser(char *data)
+bool registerUser(char *username, char *password)
 {
-    char *username = strtok(data, ";");
-    char *password = strtok(NULL, ";");
-
-    printf("data:%s | username:%s | password:%s\n", data, username, password);
+    printf("username:%s | password:%s\n", username, password);
 
     if (username == NULL || password == NULL || strcmp("", username) == 0 || strcmp("", password) == 0)
     {
@@ -626,9 +623,22 @@ int main(int argc, char *argv[])
                     }
                     else if (strcmp(type, "REGISTER") == 0)
                     {
-                        if (registerUser(data) == true)
+                        printf("register\n");
+                        bool regSuccess = false;
+
+                        if (registerUser(source, data) == true)
                         {
-                            // success
+                            printf("register success\n");
+                            regSuccess = createClient(sd, source, data);
+                        }
+                        else
+                        {
+                            printf("authenticate failed\n");
+                        }
+
+                        if (regSuccess == true)
+                        {
+                            printf("registration success and logged in\n");
                             char *message = "REG_ACK:0:server:";
                             if (send(sd, message, MAXBUFLEN, 0) == -1)
                             {
@@ -637,12 +647,16 @@ int main(int argc, char *argv[])
                         }
                         else
                         {
-                            // fail
+                            printf("registration failed\n");
+                            
                             char *message = "REG_NAK:0:server:";
                             if (send(sd, message, MAXBUFLEN, 0) == -1)
                             {
                                 perror("send");
                             }
+
+                            close(sd);
+                            client_socket[i] = 0;
                         }
                     }
                     else if (strcmp(type, "LOGIN") == 0)
