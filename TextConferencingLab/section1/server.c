@@ -66,6 +66,20 @@ int findClientIndexFromSockfd(int sockfd)
     return -1;
 }
 
+int findClientIndexFromID(char *client_id)
+{
+    for (int i = 0; i < MAX_CLIENTS; i++)
+    {
+        if (strcmp(clients[i].id, client_id) == 0)
+        {
+            return i;
+        }
+    }
+
+    // this should never happen
+    return -1;
+}
+
 void buildQuery(char *buf)
 {
     strcat(buf, "Active Clients...\n");
@@ -284,6 +298,96 @@ bool leaveSession(int sockfd)
     return true;
 }
 
+bool kickClient(char *client_id)
+{
+    int clientIndex = findClientIndexFromID(client_id);
+    int sessionIndex = -1;
+    
+    if (clientIndex == -1) {
+        return false;
+    }
+
+    // find session
+    for (int i = 0; i < MAX_SESSIONS; i++)
+    {
+        for (int j = 0; j < MAX_CLIENTS_PER_SESSION; j++)
+        {
+            if (sessions[i].clientIndexes[j] == clientIndex)
+            {
+                sessionIndex = i;
+            }
+        }
+    }
+
+    if (sessionIndex == -1)
+    {
+        // shouldn't reach here
+        printf("something went wrong!\n");
+        return false;
+    }
+
+    char body[MAXBUFLEN] = "";
+    sprintf(body, "%s:%s:%s", "KICK", clients[clientIndex].id, "you have been kicked from the session");
+    printf("sending to clients: %s\n", body);
+
+    // this is a client
+    int toSockfd = clients[sessions[sessionIndex].clientIndexes[clientIndex]].sockfd;
+
+    printf("%d %d %d\n", toSockfd, clientIndex, sessionIndex);
+
+    if (send(toSockfd, body, MAXBUFLEN, 0) == -1)
+    {
+        perror("send");
+    }
+
+    return true;
+}
+
+bool transferAdmin(char *client_id)
+{
+    int clientIndex = findClientIndexFromID(client_id);
+    int sessionIndex = -1;
+    
+    if (clientIndex == -1) {
+        return false;
+    }
+
+    // find session
+    for (int i = 0; i < MAX_SESSIONS; i++)
+    {
+        for (int j = 0; j < MAX_CLIENTS_PER_SESSION; j++)
+        {
+            if (sessions[i].clientIndexes[j] == clientIndex)
+            {
+                sessionIndex = i;
+            }
+        }
+    }
+
+    if (sessionIndex == -1)
+    {
+        // shouldn't reach here
+        printf("something went wrong!\n");
+        return false;
+    }
+
+    char body[MAXBUFLEN] = "";
+    sprintf(body, "%s:%s:%s", "ADMIN", clients[clientIndex].id, "you are now the admin of the session");
+    printf("sending to clients: %s\n", body);
+
+    // this is a client
+    int toSockfd = clients[sessions[sessionIndex].clientIndexes[clientIndex]].sockfd;
+
+    printf("%d %d %d\n", toSockfd, clientIndex, sessionIndex);
+
+    if (send(toSockfd, body, MAXBUFLEN, 0) == -1)
+    {
+        perror("send");
+    }
+
+    return true;
+}
+
 bool message(int sockfd, char *message)
 {
     int clientIndex = findClientIndexFromSockfd(sockfd);
@@ -310,6 +414,7 @@ bool message(int sockfd, char *message)
 
     char body[MAXBUFLEN] = "";
     sprintf(body, "%s:%s:%s", "MESSAGE", clients[clientIndex].id, message);
+    
     printf("sending to clients: %s\n", body);
 
     // send message to everyone in the session
@@ -594,6 +699,42 @@ int main(int argc, char *argv[])
                         if (leaveSession(sd) == true)
                         {
                             printf("leave session\n");
+                        }
+                    }
+                    else if (strcmp(type, "KICK") == 0)
+                    {
+                        char message[100];
+                        if (kickClient(data) == true)
+                        {
+                            sprintf(message, "%s:%s:%s:%s%s", "KK_ACK", size, "server", data, " - client kicked");
+                            if (send(sd, message, MAXBUFLEN, 0) == -1)
+                            {
+                                perror("send");
+                            }
+                        } else {
+                            sprintf(message, "%s:%s:%s:%s", "KK_NAK", size, "server", "");
+                            if (send(sd, message, MAXBUFLEN, 0) == -1)
+                            {
+                                perror("send");
+                            }
+                        }
+                    }
+                    else if (strcmp(type, "TRANS_ADMIN") == 0)
+                    {
+                        char message[100];
+                        if (transferAdmin(data) == true)
+                        {
+                            sprintf(message, "%s:%s:%s:%s%s", "TA_ACK", size, "server", data, " - client is now admin");
+                            if (send(sd, message, MAXBUFLEN, 0) == -1)
+                            {
+                                perror("send");
+                            }
+                        } else {
+                            sprintf(message, "%s:%s:%s:%s", "TA_NAK", size, "server", "");
+                            if (send(sd, message, MAXBUFLEN, 0) == -1)
+                            {
+                                perror("send");
+                            }
                         }
                     }
                     else if (strcmp(type, "NEW_SESS") == 0)

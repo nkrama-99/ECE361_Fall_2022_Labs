@@ -22,6 +22,7 @@ int numbytes;
 char set_client_id[MAXBUFLEN];
 bool connected = false;
 bool isLoggedIn = false;
+bool isAdmin = false;
 
 void sighandler(int sig_num)
 {
@@ -55,7 +56,6 @@ void login(char *password, char *server_ip, char *server_port)
     if ((rv = getaddrinfo(server_ip, server_port, &hints, &servinfo)) != 0)
     {
         fprintf(stderr, "getaddrinfo: %s\n", gai_strerror(rv));
-        return 1;
     }
 
     for (servinfo; servinfo != NULL; servinfo = servinfo->ai_next)
@@ -202,6 +202,74 @@ void leaveSession()
     inSession = false;
 }
 
+void kick(char* client_id)
+{
+    char buf[MAXBUFLEN];
+    char message[MAXBUFLEN] = "";
+    char type[] = "KICK";
+
+    sprintf(message, "%s:%s:%s:%s", type, "0", set_client_id, client_id);
+
+    if (send(sockfd, message, MAXBUFLEN, 0) == -1)
+    {
+        perror("send");
+    }
+
+    // wait for kk_ack
+    if ((numbytes = recv(sockfd, buf, MAXBUFLEN - 1, 0)) == -1)
+    {
+        perror("recvfrom");
+    }
+
+    char *reply_type = strtok(buf, ":");
+    char *reply_size = strtok(NULL, ":");
+    char *source = strtok(NULL, ":");
+    char *data = strtok(NULL, ":");
+
+    if (strcmp(reply_type, "KK_ACK") == 0)
+    {
+        printf("kicked client successfully\n");
+    }
+    else if (strcmp(reply_type, "KK_NAK") == 0)
+    {
+        printf("This client is not in the session\n");
+    }
+}
+
+void transferAdmin(char* client_id)
+{
+    char buf[MAXBUFLEN];
+    char message[MAXBUFLEN] = "";
+    char type[] = "TRANS_ADMIN";
+
+    sprintf(message, "%s:%s:%s:%s", type, "0", set_client_id, client_id);
+
+    if (send(sockfd, message, MAXBUFLEN, 0) == -1)
+    {
+        perror("send");
+    }
+
+    if ((numbytes = recv(sockfd, buf, MAXBUFLEN - 1, 0)) == -1)
+    {
+        perror("recvfrom");
+    }
+
+    char *reply_type = strtok(buf, ":");
+    char *reply_size = strtok(NULL, ":");
+    char *source = strtok(NULL, ":");
+    char *data = strtok(NULL, ":");
+
+    if (strcmp(reply_type, "TA_ACK") == 0)
+    {
+        isAdmin = false;
+        printf("Transferred admin role successfully\n");
+    }
+    else if (strcmp(reply_type, "TA_NAK") == 0)
+    {
+        printf("This client is not in the session\n");
+    }
+}
+
 void createSession(char *session_id)
 {
     char buf[MAXBUFLEN];
@@ -233,6 +301,7 @@ void createSession(char *session_id)
         connected = true;
         isLoggedIn = true;
         inSession = true;
+        isAdmin = true;
     }
     else if (strcmp(reply_type, "NS_NAK") == 0)
     {
@@ -407,6 +476,62 @@ int main(int argc, char **argv)
                     }
                 }
             }
+            else if (strcmp(cmd, "/kick") == 0)
+            {
+                if (isLoggedIn == false)
+                {
+                    printf("you are not logged in\n");
+                }
+                else if (inSession == false)
+                {
+                    printf("you are not in a session\n");
+                }
+                else if (isAdmin == false)
+                {
+                    printf("you do not an admin for this session\n");
+                }
+                else
+                {
+                    char *client_id = strtok(NULL, " ");
+                    if (client_id == NULL)
+                    {
+                        printf("invalid kick command\n");
+                    }
+                    else
+                    {
+                        printf("You are kicking client: %s\n", client_id);
+                        kick(client_id);
+                    }
+                }
+            }
+            else if (strcmp(cmd, "/transferadmin") == 0)
+            {
+                if (isLoggedIn == false)
+                {
+                    printf("you are not logged in\n");
+                }
+                else if (inSession == false)
+                {
+                    printf("you are not in a session\n");
+                }
+                else if (isAdmin == false)
+                {
+                    printf("you do not an admin for this session\n");
+                }
+                else
+                {
+                    char *client_id = strtok(NULL, " ");
+                    if (client_id == NULL)
+                    {
+                        printf("invalid kick command\n");
+                    }
+                    else
+                    {
+                        printf("You are transferring your admin role to: %s\n", client_id);
+                        transferAdmin(client_id);
+                    }
+                }
+            }
             else if (strcmp(cmd, "/list") == 0)
             {
                 if (isLoggedIn == false)
@@ -463,6 +588,16 @@ int main(int argc, char **argv)
             if (cmd != NULL && source != NULL && content != NULL && strcmp(cmd, "MESSAGE") == 0)
             {
                 printf("%s - %s\n", source, content);
+            }
+            else if (cmd != NULL && source != NULL && content != NULL && strcmp(cmd, "KICK") == 0)
+            {
+                printf("%s %s\n", source, content);
+                leaveSession();
+            }
+            else if (cmd != NULL && source != NULL && content != NULL && strcmp(cmd, "ADMIN") == 0)
+            {
+                isAdmin = true;
+                printf("you are now the admin of the session\n");
             }
         }
         else
