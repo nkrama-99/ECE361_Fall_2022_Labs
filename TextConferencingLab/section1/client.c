@@ -33,7 +33,7 @@ void sighandler(int sig_num)
 
 void registerUser(char *password, char *server_ip, char *server_port)
 {
-    printf("server:%s, port:%s, end...\n", server_ip, server_port);
+    // printf("server:%s, port:%s, end...\n", server_ip, server_port);
     if (isLoggedIn == true)
     {
         printf("you are logged in, you need to logout first\n");
@@ -48,7 +48,7 @@ void registerUser(char *password, char *server_ip, char *server_port)
     sprintf(size, "%d", strlen(password));
 
     sprintf(message, "%s:%s:%s:%s", type, size, set_client_id, password);
-    printf("%s\n", message);
+    // printf("%s\n", message);
 
     struct addrinfo hints;
     memset(&hints, 0, sizeof hints);
@@ -79,7 +79,7 @@ void registerUser(char *password, char *server_ip, char *server_port)
             continue;
         }
 
-        printf("connected to the server, attempting to log in\n");
+        printf("attempting to register\n");
         break;
     }
 
@@ -113,7 +113,7 @@ void registerUser(char *password, char *server_ip, char *server_port)
     }
     else if (strcmp(reply_type, "REG_NAK") == 0)
     {
-        printf("register unsuccessful\n");
+        printf("registration unsuccessful\n");
         close(sockfd);
     }
 }
