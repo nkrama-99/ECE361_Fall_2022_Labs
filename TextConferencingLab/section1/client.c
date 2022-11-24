@@ -290,7 +290,7 @@ void leaveSession()
     inSession = false;
 }
 
-void kick(char* client_id)
+void kick(char *client_id)
 {
     char buf[MAXBUFLEN];
     char message[MAXBUFLEN] = "";
@@ -324,7 +324,7 @@ void kick(char* client_id)
     }
 }
 
-void transferAdmin(char* client_id)
+void transferAdmin(char *client_id)
 {
     char buf[MAXBUFLEN];
     char message[MAXBUFLEN] = "";
@@ -603,6 +603,10 @@ int main(int argc, char **argv)
                     if (client_id == NULL)
                     {
                         printf("invalid kick command\n");
+                    }
+                    else if (strcmp(client_id, set_client_id) == 0)
+                    {
+                        leaveSession();
                     }
                     else
                     {

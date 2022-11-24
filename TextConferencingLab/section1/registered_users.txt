@@ -1,1 +1,1 @@
-registered_users;rama;rama123;gaurav;gaurav123;snehal;snehal123;lakmal;lakmal123;ani;ani123;sam;sam123;
+registered_users;rama;rama123;gaurav;gaurav123;snehal;snehal123;lakmal;lakmal123;ani;ani123;sam;sam123;hi;hi;

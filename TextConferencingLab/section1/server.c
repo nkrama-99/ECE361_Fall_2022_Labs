@@ -29,6 +29,7 @@ struct Client
 struct Session
 {
     char id[100];
+    char admin[100];
     int clientIndexes[MAX_CLIENTS_PER_SESSION];
 };
 
@@ -87,10 +88,11 @@ void buildQuery(char *buf)
     strcat(buf, "Active Sessions...\n");
     for (int i = 0; i < MAX_SESSIONS; i++)
     {
+        printf("%s\n", sessions[i].admin);
         if (strlen(sessions[i].id) != 0)
         {
             char temp[MAXBUFLEN] = "";
-            sprintf(temp, "- %s \n", sessions[i].id);
+            sprintf(temp, "- %s -> admin = %s\n", sessions[i].id, sessions[i].admin);
             strcat(buf, temp);
             for (int j = 0; j < MAX_CLIENTS_PER_SESSION; j++)
             {
@@ -198,7 +200,7 @@ bool removeClient(int sockfd)
     }
 }
 
-bool createSession(char *sessionId)
+bool createSession(char *sessionId, char *source)
 {
     for (int i = 0; i < MAX_SESSIONS; i++)
     {
@@ -212,6 +214,7 @@ bool createSession(char *sessionId)
     {
         if (strlen(sessions[i].id) == 0)
         {
+            strcpy(sessions[i].admin, source);
             // this space is available in sessions
             strcpy(sessions[i].id, sessionId);
             for (int j = 0; j < MAX_CLIENTS_PER_SESSION; j++)
@@ -362,6 +365,8 @@ bool transferAdmin(char *client_id)
         printf("something went wrong!\n");
         return false;
     }
+
+    strcpy(sessions[sessionIndex].admin, client_id);
 
     char body[MAXBUFLEN] = "";
     sprintf(body, "%s:%s:%s", "ADMIN", clients[clientIndex].id, "you are now the admin of the session");
@@ -865,7 +870,7 @@ int main(int argc, char *argv[])
                     else if (strcmp(type, "NEW_SESS") == 0)
                     {
                         printf("new session\n");
-                        if (createSession(data) == true)
+                        if (createSession(data, source) == true)
                         {
                             char *message = "NS_ACK:0:server:";
                             if (joinSession(sd, data) == 0)
