@@ -293,16 +293,30 @@ bool leaveSession(int sockfd)
     return true;
 }
 
-bool kickClient(char *client_id)
-{
+bool kickClient(char *client_id, char *source)
+{   
+    int sourceIndex = findClientIndexFromID(source);
     int clientIndex = findClientIndexFromID(client_id);
+    int sourceSessionIndex = -1;
     int sessionIndex = -1;
     
     if (clientIndex == -1) {
         return false;
     }
 
-    // find session
+    // find session for source
+    for (int i = 0; i < MAX_SESSIONS; i++)
+    {
+        for (int j = 0; j < MAX_CLIENTS_PER_SESSION; j++)
+        {
+            if (sessions[i].clientIndexes[j] == sourceIndex)
+            {
+                sourceSessionIndex = i;
+            }
+        }
+    }
+
+    // find session for user being kicked
     for (int i = 0; i < MAX_SESSIONS; i++)
     {
         for (int j = 0; j < MAX_CLIENTS_PER_SESSION; j++)
@@ -312,6 +326,10 @@ bool kickClient(char *client_id)
                 sessionIndex = i;
             }
         }
+    }
+
+    if (sourceSessionIndex != sessionIndex){
+        return false;
     }
 
     if (sessionIndex == -1)
@@ -834,7 +852,7 @@ int main(int argc, char *argv[])
                     else if (strcmp(type, "KICK") == 0)
                     {
                         char message[100];
-                        if (kickClient(data) == true)
+                        if (kickClient(data, source) == true)
                         {
                             sprintf(message, "%s:%s:%s:%s%s", "KK_ACK", size, "server", data, " - client kicked");
                             if (send(sd, message, MAXBUFLEN, 0) == -1)
